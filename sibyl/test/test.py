@@ -16,19 +16,22 @@
 
 
 import random
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.expression.modint import mod_size2int
-from miasm2.expression.simplifications import expr_simp
+from typing import Generator
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.expression.simplifications import expr_simp
+from miasm.core.modint import mod_size2int
 try:
     import pycparser
 except ImportError:
     pycparser = None
 else:
-    from miasm2.core.objc import CTypesManagerNotPacked, CHandler
-    from miasm2.core.ctypesmngr import CAstTypes
-    from miasm2.arch.x86.ctype import CTypeAMD64_unk
+    from miasm.core.objc import CTypesManagerNotPacked, CHandler
+    from miasm.core.ctypesmngr import CAstTypes
+    from miasm.arch.x86.ctype import CTypeAMD64_unk
+    from miasm.jitter.jitload import Jitter
 
 from sibyl.commons import HeaderFile
+from sibyl.abi.abi import ABI
 
 
 class Test(object):
@@ -44,7 +47,7 @@ class Test(object):
         "Called for setting up the test case"
         pass
 
-    def check(self):
+    def check(self) -> bool:
         """Called to check test result
         Return True if all checks are passed"""
         return True
@@ -59,7 +62,7 @@ class Test(object):
 
     # Utils
 
-    def __init__(self, jitter, abi):
+    def __init__(self, jitter: Jitter, abi: ABI):
         self.jitter = jitter
         self.alloc_pool = 0x20000000
         self.abi = abi
@@ -79,7 +82,7 @@ class Test(object):
 
         return to_ret
 
-    def __alloc_mem(self, mem, read=True, write=False):
+    def _alloc_bytes(self, mem: bytes, read=True, write=False, comment: str=''):
         right = 0
         if read:
             right |= PAGE_READ
@@ -87,33 +90,33 @@ class Test(object):
             right |= PAGE_WRITE
 
         # Memory alignement
-        mem += "".join([chr(random.randint(0, 255)) \
-                            for _ in xrange((16 - len(mem) % 16))])
+        mem += bytes([random.randint(0, 255) \
+                            for _ in range((16 - len(mem) % 16))])
 
-        self.jitter.vm.add_memory_page(self.alloc_pool, right, mem)
+        self.jitter.vm.add_memory_page(self.alloc_pool, right, mem, comment)
         to_ret = self.alloc_pool
         self.alloc_pool += len(mem) + 1
 
         return to_ret
 
     def _alloc_mem(self, size, read=True, write=False):
-        mem = "".join([chr(random.randint(0, 255)) for _ in xrange(size)])
-        return self.__alloc_mem(mem, read=read, write=write)
+        mem = bytes([random.randint(0, 255) for _ in range(size)])
+        return self._alloc_bytes(mem, read=read, write=write)
 
-    def _alloc_string(self, string, read=True, write=False):
-        return self.__alloc_mem(string + "\x00", read=read, write=write)
+    def _alloc_string(self, string, read=True, write=False) -> int:
+        return self._alloc_bytes(string.encode() + b"\x00", read=read, write=write)
 
     def _alloc_pointer(self, pointer, read=True, write=False):
-        pointer_size = self.abi.ira.sizeof_pointer()
-        return self.__alloc_mem(Test.pack(pointer, pointer_size),
+        pointer_size = self.abi.lifter_model_call.sizeof_pointer()
+        return self._alloc_bytes(Test.pack(pointer, pointer_size),
                                 read=read,
                                 write=write)
 
-    def _write_mem(self, addr, element):
+    def _write_mem(self, addr, element: bytes):
         self.jitter.vm.set_mem(addr, element)
 
-    def _write_string(self, addr, element):
-        self._write_mem(addr, element + "\x00")
+    def _write_string(self, addr, element: str):
+        self._write_mem(addr, element.encode() + b"\x00")
 
     def _add_arg(self, number, element):
         self.abi.add_arg(number, element)
@@ -121,9 +124,15 @@ class Test(object):
     def _get_result(self):
         return self.abi.get_result()
 
-    def _ensure_mem(self, addr, element):
+    def _ensure_mem(self, addr: int, element: bytes) -> bool:
         try:
-            return self.jitter.vm.get_mem(addr, len(element)) == element
+            return element == self.jitter.vm.get_mem(addr, len(element))
+        except RuntimeError:
+            return False
+
+    def _ensure_mem_str(self, addr: int, element: str) -> bool:
+        try:
+            return element.encode() == self.jitter.vm.get_mem(addr, len(element))
         except RuntimeError:
             return False
 
@@ -137,36 +146,37 @@ class Test(object):
         return True
 
     def _as_int(self, element):
-        int_size = self.abi.ira.sizeof_int()
+        int_size = self.abi.lifter_model_call.sizeof_int()
         max_val = 2**int_size
         return (element + max_val) % max_val
 
-    def _to_int(self, element):
-        int_size = self.abi.ira.sizeof_int()
-        return mod_size2int[int_size](element)
+    def _to_int(self, element: int):
+        int_size = self.abi.lifter_model_call.sizeof_int()
+        
+        return mod_size2int[int_size](element).arg
 
     def _memread_pointer(self, addr):
-        pointer_size = self.abi.ira.sizeof_pointer() / 8
+        pointer_size = self.abi.lifter_model_call.sizeof_pointer() // 8
         try:
-            element = self.jitter.vm.get_mem(addr, pointer_size)
+            element: bytes = self.jitter.vm.get_mem(addr, pointer_size)
         except RuntimeError:
             return False
         return Test.unpack(element)
 
     @staticmethod
     def pack(element, size):
-        out = ""
+        out = b""
         while element != 0:
-            out += chr(element % 0x100)
+            out += bytes([element % 0x100])
             element >>= 8
-        if len(out) > size / 8:
+        if len(out) > size // 8:
             raise ValueError("To big to be packed")
-        out = out + "\x00" * ((size / 8) - len(out))
+        out = out + b"\x00" * ((size // 8) - len(out))
         return out
 
     @staticmethod
-    def unpack(element):
-        return int(element[::-1].encode("hex"), 16)
+    def unpack(element: bytes):
+        return int.from_bytes(element, byteorder="little") # XXX: little endian hard coded ????!!!!?????
 
 
 class TestSet(object):
@@ -263,8 +273,11 @@ class TestSetTest(TestSet):
 class TestSetGenerator(TestSet):
     """TestSet based using a generator to retrieve tests"""
 
-    def __init__(self, generator):
+    def __init__(self, generator: Generator):
         self._generator = generator
+
+    def __repr__(self) -> str:
+        return "11 ans ont passé et on n'a toujours pas la technologie..."
 
     def execute(self, callback):
         for (init, check) in self._generator:

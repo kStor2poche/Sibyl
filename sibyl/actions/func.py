@@ -16,8 +16,9 @@
 
 import os
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
+from miasm.core.locationdb import LocationDB
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
 
 from sibyl.config import config, config_paths
 from sibyl.actions.action import Action
@@ -52,20 +53,11 @@ class ActionFunc(Action):
 
     def run(self):
         # Architecture
-        architecture = False
-        if self.args.architecture:
-            architecture = self.args.architecture
-        else:
-            with open(self.args.filename) as fdesc:
-                architecture = ArchHeuristic(fdesc).guess()
-            if not architecture:
-                raise ValueError("Unable to recognize the architecture, please specify it")
-            if self.args.verbose:
-                print "Guessed architecture: %s" % architecture
-
-        cont = Container.from_stream(open(self.args.filename))
-        machine = Machine(architecture)
-        addr_size = machine.ira().pc.size / 4
+        loc_db = LocationDB()
+        cont = Container.from_stream(open(self.args.filename, "rb"), loc_db)
+        machine = Machine(cont.arch)
+        assert(machine.lifter_model_call is not None)
+        addr_size = machine.lifter_model_call(loc_db).pc.size / 4
         fh = FuncHeuristic(cont, machine, self.args.filename)
 
         # Default: force only IDA or GHIDRA if available
@@ -84,10 +76,10 @@ class ActionFunc(Action):
             fh.heuristics.remove(heur)
 
         if self.args.verbose:
-            print "Heuristics to run: %s" % ", ".join(fh.heuristic_names)
+            print("Heuristics to run: %s" % ", ".join(fh.heuristic_names))
 
 
         # Launch guess
         fmt = "0x{:0%dx}" % addr_size
         for addr in fh.guess():
-            print fmt.format(addr)
+            print(fmt.format(addr))

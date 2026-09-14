@@ -1,13 +1,16 @@
 import logging
 import copy
+from typing import Literal
+
+from miasm.core.locationdb import LocationDB
 
 try:
     import pycparser
 except ImportError:
     raise ImportError("pycparser module is needed to learn and generate")
-from miasm2.core.objc import CTypesManagerNotPacked
-from miasm2.core.ctypesmngr import CAstTypes
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
+from miasm.core.objc import CTypesManagerNotPacked
+from miasm.core.ctypesmngr import CAstTypes
+from miasm.arch.x86.ctype import CTypeAMD64_unk
 
 from sibyl.learn.replay import Replay
 from sibyl.learn.findref import ExtractRef
@@ -35,6 +38,7 @@ class TestCreator(object):
         @machine: machine used by the program
         @avoid_null: if set, do not consider snapshots returning a null value
         """
+        self.loc_db = LocationDB()
         self.functionname = functionname
         self.address = address
         self.program = program
@@ -43,7 +47,7 @@ class TestCreator(object):
         self.generator_class = generator_class
         self.main_address = main_address
         self.abicls = abicls
-        self.machine = machine
+        self.machine: Literal["x86_64"] = machine
         self.types = None
         self.avoid_null = avoid_null
 
@@ -102,7 +106,7 @@ class TestCreator(object):
             ignored = 0
         elif config.prune_strategy == "keep":
             # Remove all snapshot but one or a few (according to config)
-            for i, snapshot in xrange(self.trace):
+            for i, snapshot in range(self.trace):
                 trace.append(snapshot)
                 if len(trace) >= config.prune_keep:
                     break

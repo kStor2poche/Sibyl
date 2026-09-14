@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sibyl"
+version = "0.2"
+description="A Miasm based function divination"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Camille Mougey", email = "commial@gmail.com" },
+]
+keywords=["reverse engineering", "emulation"]
+license = "GPL-3.0+"
+license-files = ["LICENSE.md"]
+dependencies = [
+  "future",
+  "pyparsing>=2.4.1",
+  "dill>=0.4.1",
+]
+[project.optional-dependencies]
+llvm = ["llvmlite==0.44.0"]
+all = ["llvmlite==0.44.0"]

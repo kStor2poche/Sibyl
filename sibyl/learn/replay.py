@@ -1,8 +1,8 @@
 import struct
 
-from miasm2.jitter.loader.elf import vm_load_elf
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_ACCESS_VIOL, EXCEPT_DIV_BY_ZERO, EXCEPT_PRIV_INSN
+from miasm.jitter.loader.elf import vm_load_elf
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_ACCESS_VIOL, EXCEPT_DIV_BY_ZERO, EXCEPT_PRIV_INSN
 
 from sibyl.config import config
 
@@ -27,16 +27,17 @@ class Replay(object):
         self.machine = Machine(testcreator.machine)
         self.trace = testcreator.trace
         self.logger = testcreator.logger
-        self.ira = self.machine.ira()
-        self.ptr_size = self.ira.sizeof_pointer()/8
+        assert(self.machine.lifter_model_call is not None)
+        self.lifter_model_call = self.machine.lifter_model_call(loc_db=testcreator.loc_db)
+        self.ptr_size = self.lifter_model_call.sizeof_pointer()//8
 
     def use_snapshot(self, jitter):
         '''Initilize the VM with the snapshot informations'''
-        for reg, value in self.snapshot.input_reg.iteritems():
+        for reg, value in self.snapshot.input_reg.items():
             setattr(jitter.cpu, reg, value)
 
         # Set values for input memory
-        for addr, mem in self.snapshot.in_memory.iteritems():
+        for addr, mem in self.snapshot.in_memory.items():
             assert mem.access != 0
             if not jitter.vm.is_mapped(addr, mem.size):
                 jitter.vm.add_memory_page(addr, mem.access, mem.data)
@@ -53,21 +54,21 @@ class Replay(object):
         '''Compare the expected result with the real one to determine if the function is recognize or not'''
         func_found = True
 
-        for reg, value in self.snapshot.output_reg.iteritems():
+        for reg, value in self.snapshot.output_reg.items():
             if value != getattr(jitter.cpu, reg):
                 self.replayexception += ["output register %s wrong : %i expected, %i found" % (reg, value, getattr(jitter.cpu, reg))]
                 func_found = False
 
-        for addr, mem in self.snapshot.out_memory.iteritems():
+        for addr, mem in self.snapshot.out_memory.items():
             self.logger.debug("Check @%s, %s bytes: %r", hex(addr), hex(mem.size), mem.data[:0x10])
             if mem.data != jitter.vm.get_mem(addr, mem.size):
-                self.replayexception += ["output memory wrong at 0x%x: %s expected, %s found" % (addr + offset, repr(mem.data), repr(jitter.vm.get_mem(addr + offset, mem.size)))]
+                self.replayexception += ["output memory wrong at 0x%x: %s expected, %s found" % (addr, repr(mem.data), repr(jitter.vm.get_mem(addr, mem.size)))]
                 func_found = False
 
         return func_found
 
     def end_func(self, jitter):
-        if jitter.vm.is_mapped(getattr(jitter.cpu, self.ira.ret_reg.name), 1):
+        if jitter.vm.is_mapped(getattr(jitter.cpu, self.lifter_model_call.ret_reg.name), 1):
             self.replayexception += ["return value might be a pointer"]
 
         self.isFuncFound = self.compare_snapshot(jitter)
@@ -80,21 +81,22 @@ class Replay(object):
         true if the snapshot has recognized the function, false else.'''
 
         # Retrieve miasm tools
-        jitter = self.machine.jitter(config.miasm_engine)
+        assert(self.machine.jitter is not None)
+        jitter = self.machine.jitter(self.lifter_model_call.loc_db, config.miasm_engine)
 
         vm_load_elf(jitter.vm, open(self.filename, "rb").read())
 
         # Init segment
-        jitter.ir_arch.do_stk_segm = True
-        jitter.ir_arch.do_ds_segm = True
-        jitter.ir_arch.do_str_segm = True
-        jitter.ir_arch.do_all_segm = True
+        jitter.lifter.do_stk_segm = True
+        jitter.lifter.do_ds_segm = True
+        jitter.lifter.do_str_segm = True
+        jitter.lifter.do_all_segm = True
 
         FS_0_ADDR = 0x7ff70000
         jitter.cpu.FS = 0x4
         jitter.cpu.set_segm_base(jitter.cpu.FS, FS_0_ADDR)
         jitter.vm.add_memory_page(
-            FS_0_ADDR + 0x28, PAGE_READ, "\x42\x42\x42\x42\x42\x42\x42\x42", "Stack canary FS[0x28]")
+            FS_0_ADDR + 0x28, PAGE_READ, b"\x42\x42\x42\x42\x42\x42\x42\x42", "Stack canary FS[0x28]")
 
         # Init the jitter with the snapshot
         self.use_snapshot(jitter)

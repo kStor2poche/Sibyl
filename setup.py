@@ -26,13 +26,13 @@ setup(
     url='https://github.com/cea-sec/sibyl',
     download_url='https://github.com/cea-sec/sibyl/tarball/master',
     license='GPLv3+',
-    description='A Miasm2 based function divination',
+    description='A Miasm based function divination',
     long_description="""
 Sibyl is a tool aiming at recognizing functions in binaries based on their side
     effects, by running them in a sandboxed environment.""",
     keywords=["reverse engineering", "emulation"],
     install_requires=[
-        'miasm2',
+        'miasm',
     ],
     packages=['sibyl', 'sibyl/abi', 'sibyl/engine', 'sibyl/learn',
               'sibyl/learn/tracer', 'sibyl/learn/generator',

@@ -61,7 +61,7 @@ class TestIsCharset(Test):
     def reset(self, *args, **kwargs):
         super(TestIsCharset, self).reset_full(*args, **kwargs)
 
-    def check_gen(self, result=None):
+    def check_gen(self, result=None): # TODO: les valeurs de retour sont pas {0,1} en vrai (cf. man)
         if result == None:
             result = self._get_result()
 
@@ -91,7 +91,6 @@ class TestIsCharset(Test):
     def test_iter(self):
         while self.next_test:
             yield self.next_test
-        raise StopIteration()
 
     def init_notascii(self):
         self._add_arg(0, 255)

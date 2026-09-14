@@ -1,10 +1,12 @@
 from collections import namedtuple
 import struct
 
+from miasm.core.locationdb import LocationDB
+
 from sibyl.learn.replay import Replay
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.core.graph import DiGraph
-from miasm2.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.graph import DiGraph
+from miasm.analysis.machine import Machine
 
 
 class Trace(list):
@@ -27,7 +29,7 @@ class Trace(list):
             return self.symbols[image_name].get(symbol_name, None)
 
         found = None
-        for symbols in self.symbols.itervalues():
+        for symbols in self.symbols.values():
             if symbol_name in symbols:
                 if found is not None:
                     raise ValueError("At least two symbols for this symbol")
@@ -47,10 +49,9 @@ class Trace(list):
 class MemoryAccess(object):
     '''Represent a memory block, read or write by the learned function'''
 
-    def __init__(self, size, data, access):
-
+    def __init__(self, size, data: bytes, access):
         self.size = size
-        self.data = data
+        self.data: bytes = data
         self.access = access
 
     def __str__(self):
@@ -71,7 +72,7 @@ class MemoryAccess(object):
 class Snapshot(object):
 
     @classmethod
-    def get_byte(cls, value, byte):
+    def get_byte(cls, value, byte) -> bytes:
         '''Return the byte @byte of the value'''
         return struct.pack('@B', (value & (0xFF << (8 * byte))) >> (8 * byte))
 
@@ -96,9 +97,13 @@ class Snapshot(object):
         self.in_memory = {}
         self.out_memory = {}
 
-        self._ira = Machine(machine).ira()
-        self._ptr_size = self._ira.sizeof_pointer()/8
-        self.sp = self._ira.sp.name
+        self.loc_db = LocationDB()
+        self._lifter_model_call = Machine(machine).lifter_model_call(loc_db=self.loc_db)
+        self._ptr_size = self._lifter_model_call.sizeof_pointer() // 8
+        self.sp = self._lifter_model_call.sp.name
+
+    def __repr__(self) -> str:
+        return f"{type(self)} with {self._instr_count} executed instructions up to 0x{self._current_addr:x} (prev. addr: 0x{self._previous_addr:x})"
 
     def add_input_register(self, reg_name, reg_value):
         self.input_reg[reg_name] = reg_value
@@ -107,7 +112,7 @@ class Snapshot(object):
         self.output_reg[reg_name] = reg_value
 
     def add_memory_read(self, address, size, value):
-        for i in xrange(size):
+        for i in range(size):
             self.out_memory[address + i] = MemoryAccess(1,
                                                         Snapshot.get_byte(value, i),
                                                         0,  # Output access never used
@@ -123,7 +128,7 @@ class Snapshot(object):
                 self.in_memory[address + i].access |= PAGE_READ
 
     def add_memory_write(self, address, size, value):
-        for i in xrange(size):
+        for i in range(size):
             self.out_memory[address + i] = MemoryAccess(1,
                                                         Snapshot.get_byte(value, i),
                                                         0,  # Output access never used
@@ -131,7 +136,7 @@ class Snapshot(object):
 
             if address + i not in self.in_memory:
                 self.in_memory[address + i] = MemoryAccess(1,
-                                                           "\x00",
+                                                           b"\x00",
                                                            # The value is
                                                            # not used by the
                                                            # test

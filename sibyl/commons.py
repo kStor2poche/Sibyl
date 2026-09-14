@@ -4,9 +4,9 @@ try:
     import pycparser
 except ImportError:
     pycparser = None
-else:
-    from miasm2.core.ctypesmngr import c_to_ast, CTypeFunc
-    from miasm2.core.objc import ObjCPtr, ObjCArray
+finally:
+    from miasm.core.ctypesmngr import c_to_ast, CTypeFunc
+    from miasm.core.objc import ObjCPtr, ObjCArray
 
 def init_logger(name):
     logger = logging.getLogger(name)
@@ -42,8 +42,8 @@ def print_table(ligs, title=True, separator='|', level=0, align=""):
 
     for i, lig in enumerate(ligs):
         if i == 1 and title:
-            print "%s%s" % (tab, "-" * len(fmt.format(*lig)))
-        print "%s%s" % (tab, fmt.format(*lig))
+            print("%s%s" % (tab, "-" * len(fmt.format(*lig))))
+        print("%s%s" % (tab, fmt.format(*lig)))
 
 class HeaderFile(object):
     """Abstract representation of a Header file"""
@@ -51,7 +51,7 @@ class HeaderFile(object):
     def __init__(self, header_data, ctype_manager):
         """Parse @header_data to fill @ctype_manager
         @header_data: str of a C-like header file
-        @ctype_manager: miasm2.core.objc.CTypesManager instance"""
+        @ctype_manager: miasm.core.objc.CTypesManager instance"""
         self.data = header_data
         self.ctype_manager = ctype_manager
 
@@ -68,6 +68,7 @@ class HeaderFile(object):
         """Return the AST corresponding to @header_data
         @header_data: str of a C-like header file
         """
+        assert(pycparser is not None)
         # We can't use add_c_decl, because we need the AST to get back
         # function's arguments name
         parser = pycparser.c_parser.CParser()
@@ -75,6 +76,7 @@ class HeaderFile(object):
 
     def parse_functions(self):
         """Search for function declarations"""
+        assert(pycparser is not None)
 
         for ext in self.ast.ext:
             if not (isinstance(ext, pycparser.c_ast.Decl) and

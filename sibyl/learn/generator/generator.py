@@ -1,4 +1,6 @@
-from miasm2.analysis.machine import Machine
+from miasm.analysis.machine import Machine
+
+from sibyl.learn.learn import TestCreator
 
 
 class Generator(object):
@@ -8,7 +10,7 @@ class Generator(object):
     Here a test is a sibyl test init function and a sibyl test check function
     '''
 
-    def __init__(self, testcreator):
+    def __init__(self, testcreator: TestCreator):
         '''
         @testcreator: TestCreator instance with associated information
         '''
@@ -18,8 +20,8 @@ class Generator(object):
         self.types = testcreator.types
         self.printer = Printer()
         self.headerfile = testcreator.headerfile
-        self.ira = Machine(testcreator.machine).ira()
-        self.ptr_size = self.ira.sizeof_pointer()/8
+        self.lifter_model_call = Machine(testcreator.machine).lifter_model_call(testcreator.loc_db)
+        self.ptr_size = self.lifter_model_call.sizeof_pointer()/8
         self.logger = testcreator.logger
 
     def generate_test(self):

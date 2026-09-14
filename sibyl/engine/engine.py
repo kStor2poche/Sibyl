@@ -1,13 +1,18 @@
+from miasm.core.locationdb import LocationDB
+from miasm.jitter.jitload import Jitter
+
 from sibyl.commons import init_logger
+from miasm.analysis.machine import Machine
 
 
 class Engine(object):
     """Wrapper on execution engine"""
 
-    def __init__(self, machine):
+    def __init__(self, machine: Machine):
         """Instanciate an Engine
-        @machine: miasm2.analysis.machine:Machine instance"""
+        @machine: miasm.analysis.machine:Machine instance"""
         self.logger = init_logger(self.__class__.__name__)
+        self.machine = machine
 
     def take_snapshot(self):
         self.vm_mem = self.jitter.vm.get_all_memory()
@@ -21,6 +26,3 @@ class Engine(object):
 
     def prepare_run(self):
         pass
-
-    def restore_snapshot(self, memory=True):
-        raise NotImplementedError("Abstract method")

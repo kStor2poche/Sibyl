@@ -19,7 +19,7 @@ class Tracer(object):
         @abicls: class of the ABI used by the program
         @machine: machine used by the program
         '''
-        self.program = os.path.abspath(program)
+        self.program = os.path.abspath(program).encode("utf-8")
         self.address = address
         self.main_address = main_address
         self.abicls = abicls
@@ -47,10 +47,10 @@ class Tracer(object):
         stdout = stdout.strip()
         stderr = stderr.strip()
         if stdout:
-            print stdout
+            print(stdout)
 
         if stderr:
-            print "STDERR is not empty"
-            print stderr
+            print("STDERR is not empty")
+            print(stderr)
 
         return stdout

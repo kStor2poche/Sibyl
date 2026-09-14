@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+# python packaging artifacts
+build/
+**/*.egg-info
+
 # C extensions
 *.so
 

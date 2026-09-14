@@ -1,6 +1,7 @@
 "Module for architecture guessing"
 
-from miasm2.analysis.binary import Container, ContainerUnknown
+from miasm.analysis.binary import Container, ContainerUnknown
+from miasm.core.locationdb import LocationDB
 
 from sibyl.heuristics.heuristic import Heuristic
 
@@ -10,7 +11,8 @@ def container_guess(archinfo):
     @archinfo: ArchHeuristic instance
     """
 
-    cont = Container.from_stream(archinfo.stream)
+    loc_db = LocationDB()
+    cont = Container.from_stream(archinfo.stream, loc_db)
 
     if isinstance(cont, ContainerUnknown) or not cont.arch:
         return {}

@@ -21,9 +21,9 @@ class ABI(object):
     # Associated architectures
     arch = []
 
-    def __init__(self, jitter, ira):
+    def __init__(self, jitter, lifter_model_call):
         self.jitter = jitter
-        self.ira = ira
+        self.lifter_model_call = lifter_model_call
 
     def reset(self):
         "Reset the current ABI"
@@ -42,7 +42,7 @@ class ABI(object):
         """
         raise NotImplementedError("Abstract method")
 
-    def get_result(self):
+    def get_result(self) -> int:
         """Return the function result value, as int"""
         raise NotImplementedError("Abstract method")
 
@@ -56,8 +56,8 @@ class ABIRegsStack(ABI):
         super(ABIRegsStack, self).__init__(*args, **kwargs)
         self.args = {}
 
-    def add_arg(self, number, element):
-        if isinstance(element, (int, long)):
+    def add_arg(self, number: int, element: int):
+        if isinstance(element, int):
             self.args[number] = element
         else:
             raise NotImplementedError()
@@ -87,5 +87,5 @@ class ABIRegsStack(ABI):
     def reset(self):
         self.args = {}
 
-    def get_result(self):
-        return getattr(self.jitter.cpu, self.ira.ret_reg.name)
+    def get_result(self) -> int:
+        return getattr(self.jitter.cpu, self.lifter_model_call.ret_reg.name)

@@ -2,13 +2,16 @@
 This module gives a tracer that uses miasm to run the program
 '''
 
+from miasm.arch.mips32.jit import LocationDB
+from miasm.jitter.jitcore_python import JitCore_Python
+
 from sibyl.learn.tracer.tracer import Tracer
 from sibyl.learn.trace import Trace, Snapshot
 
-from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
-from miasm2.jitter.csts import PAGE_READ
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.loader.elf import vm_load_elf
+from miasm.jitter.emulatedsymbexec import EmulatedSymbExec
+from miasm.jitter.csts import PAGE_READ
+from miasm.analysis.machine import Machine
+from miasm.jitter.loader.elf import vm_load_elf
 
 class CustomEmulatedSymbExec(EmulatedSymbExec):
     '''New emulator that trap all memory read and write which is needed by the miasm tracer'''
@@ -35,19 +38,19 @@ class CustomEmulatedSymbExec(EmulatedSymbExec):
         '''Remove a write callback'''
         self._write_callback.remove(callback)
 
-    def _func_read(self, expr_mem):
+    def mem_read(self, expr_mem):
         '''Function call for each read. We overwrite it to intercept the read'''
         for callback in self._read_callback:
             callback(self, expr_mem)
 
-        return super(CustomEmulatedSymbExec, self)._func_read(expr_mem)
+        return super(CustomEmulatedSymbExec, self).mem_read(expr_mem)
 
-    def _func_write(self, symb_exec, dest, data):
+    def mem_write(self, dest, data):
         '''Function call for each write. We overwrite it to intercept the write'''
         for callback in self._write_callback:
             callback(self, dest, data)
 
-        super(CustomEmulatedSymbExec, self)._func_write(symb_exec, dest, data)
+        super(CustomEmulatedSymbExec, self).mem_write(dest, data)
 
 
 class TracerMiasm(Tracer):
@@ -63,16 +66,16 @@ class TracerMiasm(Tracer):
     def read_callback(self, symb_exec, expr_mem):
         '''Read callback that add the read event to the snapshot'''
         addr = int(expr_mem.ptr)
-        size = expr_mem.size / 8
-        value = int(symb_exec.cpu.get_mem(addr, size)[::-1].encode("hex"), 16)
+        size = expr_mem.size // 8
+        value = int.from_bytes(symb_exec.vm.get_mem(addr, size), byteorder="little")
 
         self.current_snapshot.add_memory_read(addr, size, value)
 
     def write_callback(self, symb_exec, dest, data):
         '''Write callback that add the read event to the snapshot'''
         addr = int(dest.ptr)
-        size = data.size / 8
-        value = int(data.arg.arg)
+        size = data.size // 8
+        value = int(data.arg)
 
         self.current_snapshot.add_memory_write(addr, size, value)
 
@@ -109,7 +112,6 @@ class TracerMiasm(Tracer):
         '''
         Function called by miasm at the end of every execution of the traced function
         '''
-
         jitter.pc = self.old_ret_addr
 
         for reg_name in self.reg_list:
@@ -142,27 +144,30 @@ class TracerMiasm(Tracer):
 
         # Retrieve miasm tools
         machine = Machine(self.machine)
-        jitter = machine.jitter("python")
+        loc_db = LocationDB()
+        assert(machine.jitter is not None)
+        jitter = machine.jitter(loc_db, "python")
 
+        assert(isinstance(jitter.jit, JitCore_Python))
         # Set the jitter to use our custom emulator
         jitter.jit.symbexec = CustomEmulatedSymbExec(
-            jitter.cpu, jitter.vm, jitter.jit.ir_arch, {})
+            jitter.cpu, jitter.vm, jitter.jit.lifter, {})
         jitter.jit.symbexec.enable_emulated_simplifications()
         jitter.jit.symbexec.reset_regs()
 
         elf = vm_load_elf(jitter.vm, open(self.program, "rb").read())
 
         # Init segment
-        jitter.ir_arch.do_stk_segm = True
-        jitter.ir_arch.do_ds_segm = True
-        jitter.ir_arch.do_str_segm = True
-        jitter.ir_arch.do_all_segm = True
+        jitter.lifter.do_stk_segm = True
+        jitter.lifter.do_ds_segm = True
+        jitter.lifter.do_str_segm = True
+        jitter.lifter.do_all_segm = True
 
         FS_0_ADDR = 0x7ff70000
         jitter.cpu.FS = 0x4
         jitter.cpu.set_segm_base(jitter.cpu.FS, FS_0_ADDR)
         jitter.vm.add_memory_page(
-            FS_0_ADDR + 0x28, PAGE_READ, "\x42\x42\x42\x42\x42\x42\x42\x42")
+            FS_0_ADDR + 0x28, PAGE_READ, b"\x42\x42\x42\x42\x42\x42\x42\x42")
 
         # Init stack and push main args
         jitter.init_stack()

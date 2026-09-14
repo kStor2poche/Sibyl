@@ -6,7 +6,10 @@ Copyright 2014 - 2019 [Camille MOUGEY](mailto:camille.mougey@cea.fr)
 Sibyl
 =====
 
-A _Miasm2_ based function divination.
+A _Miasm_ based function divination.
+
+> "Le monde est conduit par les prophètes, par ceux qui savent voir les effets dans les causes. La sibylle n'a jamais menti; elle ne s'est jamais trompée. La sibylle est la voix du Latium, le guide de la race latine, la révélatrice de ses destinées."
+_(Renan, Drames philos., Prêtre Némi, 1885, II 7 p. 562)_
 
 Idea
 ----

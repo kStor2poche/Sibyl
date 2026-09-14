@@ -15,7 +15,7 @@
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 
 FROM miasm/tested:latest
-MAINTAINER Camille Mougey <camille.mougey@cea.fr>
+LABEL org.opencontainers.image.authors="Camille Mougey <camille.mougey@cea.fr>"
 USER root
 
 # Get unicorn
@@ -28,12 +28,12 @@ RUN cd /opt &&\
     tar xzvf Sibyl.tar.gz &&\
     rm Sibyl.tar.gz &&\
     mv Sibyl-master Sibyl &&\
-    chown -Rh miasm2 Sibyl &&\
+    chown -Rh miasm Sibyl &&\
     cd Sibyl &&\
     python setup.py install
 
 # Prepare the environment
 WORKDIR /opt/Sibyl
-USER miasm2
+USER miasm
 
 CMD ["/usr/local/bin/sibyl"]

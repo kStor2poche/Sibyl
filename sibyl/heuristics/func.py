@@ -2,11 +2,12 @@
 import logging
 import re
 import tempfile
+import traceback
 import subprocess
 import shutil
 import os
 
-from miasm2.core.asmblock import AsmBlockBad, log_asmblock
+from miasm.core.asmblock import AsmBlockBad, log_asmblock
 
 from sibyl.heuristics.heuristic import Heuristic
 import sibyl.heuristics.csts as csts
@@ -32,6 +33,7 @@ def recursive_call(func_heur, addresses):
             cfg_temp = mdis.dis_multiblock(start_addr)
         except TypeError as error:
             log_asmblock.critical("While disassembling: %s", error)
+            traceback.print_exception(error)
             continue
 
         # Merge label2block, take care of disassembly order due to cache
@@ -43,7 +45,7 @@ def recursive_call(func_heur, addresses):
 
     # Find potential addresses
     addresses = {}
-    for bbl in label2block.itervalues():
+    for bbl in label2block.values():
         if len(bbl.lines) == 0:
             continue
         last_line = bbl.lines[-1]
@@ -67,7 +69,7 @@ def recursive_call(func_heur, addresses):
     return addresses
 
 
-def _virt_find(virt, pattern):
+def _virt_find(virt, pattern: bytes): # comment seems to be misleading, virt being raw data
     """Search @pattern in elfesteem @virt instance
     Inspired from elf_init.virt.find
     """
@@ -103,7 +105,7 @@ def pattern_matching(func_heur):
 
     # Search for function prologs
 
-    pattern = "(" + ")|(".join(prologs) + ")"
+    pattern = b"(" + b")|(".join(prologs) + b")"
     for find_iter, vaddr_base in _virt_find(data, pattern):
         for match in find_iter:
             addr = match.start() + vaddr_base
@@ -135,14 +137,13 @@ def ida_funcs(func_heur):
         return {}
 
     # Prepare temporary files: script and output
-    tmp_script = tempfile.NamedTemporaryFile(suffix=".py", delete=True)
-    tmp_out = tempfile.NamedTemporaryFile(suffix=".addr", delete=True)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=True) as tmp_script, tempfile.NamedTemporaryFile(suffix=".addr", delete=True) as tmp_out:
 
-    tmp_script.write("""idaapi.autoWait()
-open("%s", "w").write("\\n".join("0x%%x" %% x for x in Functions()))
-Exit(0)
-""" % tmp_out.name)
-    tmp_script.flush()
+        tmp_script.write("""idaapi.autoWait()
+    open("%s", "w").write("\\n".join("0x%%x" %% x for x in Functions()))
+    Exit(0)
+    """ % tmp_out.name)
+        tmp_script.flush()
 
     # Launch IDA
     env = os.environ.copy()
@@ -247,14 +248,14 @@ class FuncHeuristic(Heuristic):
         if do_recursive:
             new_addresses = recursive_call(self,
                                            [addr
-                                            for addr, vote in addresses.iteritems()
+                                            for addr, vote in addresses.items()
                                             if vote > 0])
-            for addr, vote in new_addresses.iteritems():
+            for addr, vote in new_addresses.items():
                 addresses[addr] = addresses.get(addr, 0) + vote
         self._votes = addresses
 
     def guess(self):
-        for address, value in self.votes.iteritems():
+        for address, value in self.votes.items():
             # Heuristic may vote negatively
             if value > 0:
                 yield address

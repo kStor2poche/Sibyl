@@ -17,10 +17,14 @@
 """This module provides a way to prepare and launch Sibyl tests on a binary"""
 
 
+from operator import add
 import time
 import signal
 import logging
-from miasm2.analysis.binary import Container, ContainerPE, ContainerELF
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container, ContainerPE, ContainerELF
+from miasm.arch.arm import lifter_model_call
+from miasm.core.locationdb import LocationDB
 
 from sibyl.commons import init_logger, TimeoutException, END_ADDR
 from sibyl.engine import QEMUEngine, MiasmEngine
@@ -29,18 +33,20 @@ from sibyl.config import config
 class TestLauncher(object):
     "Launch tests for a function and report matching candidates"
 
-    def __init__(self, filename, machine, abicls, tests_cls, engine_name,
+    def __init__(self, data: bytes, architecture, abicls, tests_cls, engine_name,
                  map_addr=0):
 
         # Logging facilities
         self.logger = init_logger("testlauncher")
 
         # Prepare JiT engine
-        self.machine = machine
+        self.loc_db = LocationDB()
+        self.machine = Machine(architecture)
         self.init_engine(engine_name)
 
         # Init and snapshot VM
-        self.load_vm(filename, map_addr)
+        self.map_addr = map_addr
+        self.load_vm(data, map_addr)
         self.init_stub()
         self.snapshot = self.engine.take_snapshot()
 
@@ -57,20 +63,21 @@ class TestLauncher(object):
         # Get stubs' implementation
         context = {}
         for fpath in config.stubs:
-            execfile(fpath, context)
+            with open(fpath, "r") as f:
+                exec(f.read(), context)
         if not context:
             return
 
         libs = None
         if isinstance(self.ctr, ContainerPE):
-            from miasm2.jitter.loader.pe import preload_pe, libimp_pe
+            from miasm.jitter.loader.pe import preload_pe, libimp_pe
             libs = libimp_pe()
             preload_pe(self.jitter.vm, self.ctr.executable, libs)
 
         elif isinstance(self.ctr, ContainerELF):
-            from miasm2.jitter.loader.elf import preload_elf, libimp_elf
+            from miasm.jitter.loader.elf import preload_elf, libimp_elf
             libs = libimp_elf()
-            preload_elf(self.jitter.vm, self.ctr.executable, libs)
+            preload_elf(self.jitter.vm, self.ctr.executable, libs, elf_base_addr=self.map_addr)
 
         else:
             return
@@ -84,9 +91,9 @@ class TestLauncher(object):
             tests.append(testcls(self.jitter, self.abi))
         self.tests = tests
 
-    def load_vm(self, filename, map_addr):
-        self.ctr = Container.from_stream(open(filename), vm=self.jitter.vm,
-                                         addr=map_addr)
+    def load_vm(self, data: bytes, map_addr):
+        self.ctr = Container.from_string(data, vm=self.jitter.vm, apply_reloc=True,
+                                         addr=map_addr, loc_db=self.loc_db)
         self.jitter.cpu.init_regs()
         self.jitter.init_stack()
 
@@ -94,12 +101,12 @@ class TestLauncher(object):
         if engine_name == "qemu":
             self.engine = QEMUEngine(self.machine)
         else:
-            self.engine = MiasmEngine(self.machine, engine_name)
+            self.engine = MiasmEngine(self.machine, engine_name, self.loc_db)
         self.jitter = self.engine.jitter
 
     def init_abi(self, abicls):
-        ira = self.machine.ira()
-        self.abi = abicls(self.jitter, ira)
+        lifter = self.machine.lifter_model_call(self.loc_db)
+        self.abi = abicls(self.jitter, lifter)
 
     def launch_tests(self, test, address, timeout_seconds=0):
         # Variables to remind between two "launch_test"

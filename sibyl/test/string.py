@@ -14,8 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 
+import struct
+
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 from sibyl.test.test import Test, TestSetTest
+from sibyl.test.ctype_data import _nl_C_LC_CTYPE_tolower
 
 
 class TestStrlen(Test):
@@ -33,7 +37,7 @@ class TestStrlen(Test):
         if result != len(self.my_string):
             return False
 
-        return self._ensure_mem(self.my_addr, self.my_string + "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_string + "\x00")
 
     # Test2
     def init2(self):
@@ -46,7 +50,7 @@ class TestStrlen(Test):
         if result != len(self.my_string * 4):
             return False
 
-        return self._ensure_mem(self.my_addr, self.my_string * 4 + "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_string * 4 + "\x00")
 
 
     # Properties
@@ -60,8 +64,27 @@ class TestStrnicmp(Test):
     # Test1
     my_string1 = "Hello, world !"
     my_string2 = "hEllo, workk"
+    gs = 67
+    gs_map_addr = 0x98765432 # hardcoded addresses are the besError: attempt to add page (0x98764432 0x98765432) overlapping page (0x98764432 0x98765432)
+    gs_map_size = 0x1000 # idk maybe it's good enough
+
+    def init_ctypes_tolower(self):
+        _nl_C_LC_CTYPE_tolower_packed = struct.pack(('<' if self.jitter.vm.is_little_endian() else '>') + "I" * len(_nl_C_LC_CTYPE_tolower), *_nl_C_LC_CTYPE_tolower)
+
+        self.jitter.vm.add_memory_page(self.gs_map_addr - self.gs_map_size, PAGE_READ | PAGE_WRITE, b'\x00'*self.gs_map_size) # cf. how TLS works on linux: user variables are placed before the segment base, while the TCB is right on this base
+        self.jitter.cpu.GS = self.gs
+        self.jitter.cpu.set_segm_base(self.gs, self.gs_map_addr)
+
+        ## Allocate the tolower struct and its indirection layers
+        tolower_struct_ptr = self._alloc_bytes(_nl_C_LC_CTYPE_tolower_packed, True)
+        to_bytes_args = { "length": self.abi.lifter_model_call.sizeof_pointer() // 8, "byteorder": "little" if self.jitter.vm.is_little_endian() else "big" }
+        indirection_lyr_1_ptr = self._alloc_bytes(b'\x00' * 0x2c + tolower_struct_ptr.to_bytes(**to_bytes_args))
+        indirection_lyr_2_ptr = self._alloc_bytes(indirection_lyr_1_ptr.to_bytes(**to_bytes_args))
+        self.jitter.vm.set_mem(self.gs_map_addr - 0x18, indirection_lyr_2_ptr.to_bytes(**to_bytes_args))
 
     def init(self):
+        self.init_ctypes_tolower()
+
         self.my_addr1 = self._alloc_string(self.my_string1)
         self.my_addr2 = self._alloc_string(self.my_string2)
 
@@ -71,15 +94,18 @@ class TestStrnicmp(Test):
 
     def check(self):
         result = self._get_result()
+        result = self._to_int(result)
 
         return all([result == 0,
-                    self._ensure_mem(self.my_addr1, self.my_string1),
-                    self._ensure_mem(self.my_addr2, self.my_string2)])
+                    self._ensure_mem_str(self.my_addr1, self.my_string1),
+                    self._ensure_mem_str(self.my_addr2, self.my_string2)])
 
     # Test2
     my_string_t2 = "hEklo, workk"
 
     def init2(self):
+        self.init_ctypes_tolower()
+
         self.my_addr1 = self._alloc_string(self.my_string1)
         self.my_addr2 = self._alloc_string(self.my_string_t2)
 
@@ -89,10 +115,11 @@ class TestStrnicmp(Test):
 
     def check2(self):
         result = self._get_result()
+        result = self._to_int(result)
 
-        return all([result == 3,
-                    self._ensure_mem(self.my_addr1, self.my_string1),
-                    self._ensure_mem(self.my_addr2, self.my_string2)])
+        return all([result > 0,
+                    self._ensure_mem_str(self.my_addr1, self.my_string1),
+                    self._ensure_mem_str(self.my_addr2, self.my_string_t2)])
 
 
     # Properties
@@ -116,8 +143,8 @@ class TestStrcpy(Test):
         result = self._get_result()
 
         return all([result == self.my_addr2,
-                    self._ensure_mem(self.my_addr, self.my_string),
-                    self._ensure_mem(self.my_addr2, self.my_string)])
+                    self._ensure_mem_str(self.my_addr, self.my_string),
+                    self._ensure_mem_str(self.my_addr2, self.my_string)])
 
     # Properties
     func = "strcpy"
@@ -138,9 +165,9 @@ class TestStrncpy(Test):
     def my_check(self, string, size, sizemax):
         result = self._get_result()
         return all([result == self.my_addr2,
-                    self._ensure_mem(self.my_addr, string + "\x00"),
-                    self._ensure_mem(self.my_addr2, string[:size]),
-                    not(self._ensure_mem(self.my_addr2 + size,
+                    self._ensure_mem_str(self.my_addr, string + "\x00"),
+                    self._ensure_mem_str(self.my_addr2, string[:size]),
+                    not(self._ensure_mem_str(self.my_addr2 + size,
                                         string[size:sizemax]))])
 
     # Test
@@ -192,9 +219,9 @@ class TestStrcat(Test):
         result = self._get_result()
 
         return all([result == self.my_addr,
-                    self._ensure_mem(self.my_addr,
+                    self._ensure_mem_str(self.my_addr,
                                      self.my_string + self.my_string2),
-                    self._ensure_mem(self.my_addr2, self.my_string2)])
+                    self._ensure_mem_str(self.my_addr2, self.my_string2)])
 
     # Properties
     func = "strcat"
@@ -222,9 +249,9 @@ class TestStrncat(Test):
     def check(self):
         concated = (self.my_string + self.my_string2)[:self.total_len] + "\x00"
         return all([self._get_result() == self.my_addr,
-                    self._ensure_mem(self.my_addr,
+                    self._ensure_mem_str(self.my_addr,
                                      concated),
-                    self._ensure_mem(self.my_addr2, self.my_string2)])
+                    self._ensure_mem_str(self.my_addr2, self.my_string2)])
 
     # Properties
     func = "strncat"
@@ -247,9 +274,16 @@ class TestStrcmp(Test):
         if "\x00" in str2:
             str2 = str2.split('\x00')[0]
 
-        return all([result == cmp(str1+"\x00", str2+"\x00"),
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+        if str1+"\x00" > str2+"\x00":
+            computed_result = 1
+        elif str1+"\x00" == str2+"\x00":
+            computed_result = 0
+        else:
+            computed_result = -1
+
+        return (result == computed_result
+            and self._ensure_mem_str(addr1, str1)
+            and self._ensure_mem_str(addr2, str2))
 
     # Test
     my_string1 = "Hello,"
@@ -324,9 +358,17 @@ class TestStrncmp(Test):
             str1 = str1.split('\x00')[0]
         if "\x00" in str2:
             str2 = str2.split('\x00')[0]
-        return all([result == cmp(str1[:l], str2[:l]),
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+
+        if str1[:l] > str2[:l]:
+            computed_result = 1
+        elif str1[:l] == str2[:l]:
+            computed_result = 0
+        else:
+            computed_result = -1
+
+        return (result == computed_result
+               and self._ensure_mem_str(addr1, str1)
+               and self._ensure_mem_str(addr2, str2))
 
     # Test
     my_string1 = "Hello,"
@@ -430,9 +472,16 @@ class TestStricmp(Test):
         if "\x00" in str2:
             str2 = str2.split('\x00')[0]
 
-        return all([result == cmp(str1.lower()+"\x00", str2.lower()+"\x00"),
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+        if str1.lower()+"\x00" > str2.lower()+"\x00":
+            computed_result = 1
+        elif str1.lower()+"\x00" == str2.lower()+"\x00":
+            computed_result = 0
+        else:
+            computed_result = -1
+
+        return (result == computed_result
+               and self._ensure_mem_str(addr1, str1)
+               and self._ensure_mem_str(addr2, str2))
 
     # Test
     my_string1 = "Hello,"
@@ -509,7 +558,7 @@ class TestStrchr(Test):
         result = self._get_result()
 
         return all([result-self.my_addr == self.my_string.index(self.my_char),
-                    self._ensure_mem(self.my_addr, self.my_string)])
+                    self._ensure_mem_str(self.my_addr, self.my_string)])
 
     # Test 2
     def init2(self):
@@ -521,7 +570,7 @@ class TestStrchr(Test):
     def check2(self):
         result = self._get_result()
         return all([result == 0,
-                    self._ensure_mem(self.my_addr, self.my_string2)])
+                    self._ensure_mem_str(self.my_addr, self.my_string2)])
 
     # Properties
     func = "strchr"
@@ -543,7 +592,7 @@ class TestStrrchr(Test):
     def check1(self):
         result = self._get_result()
         return all([result-self.my_addr == self.my_string.rindex(self.my_char),
-                    self._ensure_mem(self.my_addr, self.my_string)])
+                    self._ensure_mem_str(self.my_addr, self.my_string)])
 
     # Test 2
     def init2(self):
@@ -555,7 +604,7 @@ class TestStrrchr(Test):
     def check2(self):
         result = self._get_result()
         return all([result == 0,
-                    self._ensure_mem(self.my_addr, self.my_string2)])
+                    self._ensure_mem_str(self.my_addr, self.my_string2)])
 
     # Properties
     func = "strrchr"
@@ -579,7 +628,7 @@ class TestStrnlen(Test):
         if result != self.my_len1:
             return False
 
-        return self._ensure_mem(self.my_addr, self.my_string + "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_string + "\x00")
 
     # Test2
     def init2(self):
@@ -593,7 +642,7 @@ class TestStrnlen(Test):
         if result != len(self.my_string):
             return False
 
-        return self._ensure_mem(self.my_addr, self.my_string + "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_string + "\x00")
 
 
     # Properties
@@ -612,8 +661,8 @@ class TestStrspn(Test):
                 break
             length += 1
         return all([result == length,
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+                    self._ensure_mem_str(addr1, str1),
+                    self._ensure_mem_str(addr2, str2)])
 
     # Test
     my_string1 = "Hello,"
@@ -675,8 +724,8 @@ class TestStrpbrk(Test):
             length += 1
         return all([found == res_found,
                     (found and result - addr1 == length or not found),
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+                    self._ensure_mem_str(addr1, str1),
+                    self._ensure_mem_str(addr2, str2)])
 
     # Test
     my_string1 = "Hello,"
@@ -744,7 +793,7 @@ class TestStrtok(Test):
     def check1(self):
         result = self._get_result()
         return all([result == self.my_addr1,
-                    self._ensure_mem(self.my_addr1, "Hello, ")])
+                    self._ensure_mem_str(self.my_addr1, "Hello, ")])
 
     # Test2
     def init2(self):
@@ -754,7 +803,7 @@ class TestStrtok(Test):
     def check2(self):
         result = self._get_result()
         return all([result == self.my_addr1 + self.first_tok,
-                    self._ensure_mem(self.my_addr1, "Hello, \x00word\x00!")])
+                    self._ensure_mem_str(self.my_addr1, "Hello, \x00word\x00!")])
 
     # Properties
     func = "strtok"
@@ -788,7 +837,7 @@ class TestStrsep(Test):
         ptr = self._memread_pointer(self.my_ptr)
         return all([result == self.my_addr1,
                     ptr == self.my_addr1 + self.first_tok,
-                    self._ensure_mem(self.my_addr1, "Hello, ")])
+                    self._ensure_mem_str(self.my_addr1, "Hello, ")])
 
     # Test2
     def init2(self):
@@ -798,7 +847,7 @@ class TestStrsep(Test):
     def check2(self):
         result = self._get_result()
         return all([result == self.my_addr1 + self.first_tok,
-                    self._ensure_mem(self.my_addr1, "Hello, \x00word\x00!")])
+                    self._ensure_mem_str(self.my_addr1, "Hello, \x00word\x00!")])
 
     # Properties
     func = "strsep"
@@ -822,7 +871,7 @@ class TestMemset(Test):
         expected_mem = self.my_pattern * (len(self.my_string1) - 1)
         expected_mem += self.my_string1[-1]
         return all([self._get_result() == self.my_addr1,
-                    self._ensure_mem(self.my_addr1, expected_mem)])
+                    self._ensure_mem_str(self.my_addr1, expected_mem)])
 
 
     # Properties
@@ -851,8 +900,8 @@ class TestMemmove(Test):
         result = self._get_result()
 
         return all([result == self.my_addr2,
-                    self._ensure_mem(self.my_addr1, self.my_string1),
-                    self._ensure_mem(self.my_addr2, self.my_string1),
+                    self._ensure_mem_str(self.my_addr1, self.my_string1),
+                    self._ensure_mem_str(self.my_addr2, self.my_string1),
                     ])
 
     # Test 2 (avoid memcpy confusion)
@@ -867,7 +916,7 @@ class TestMemmove(Test):
     def check2(self):
         result = self._get_result()
         return all([result == self.my_addr1+self.off,
-                    self._ensure_mem(self.my_addr1+self.off,
+                    self._ensure_mem_str(self.my_addr1+self.off,
                                      self.my_string1[:self.cpt])])
 
     # Test 3 (avoid memcpy confusion)
@@ -883,7 +932,7 @@ class TestMemmove(Test):
         result = self._get_result()
 
         return all([result == self.my_addr1,
-                    self._ensure_mem(self.my_addr1,
+                    self._ensure_mem_str(self.my_addr1,
                                      self.my_string1[self.off:self.off+self.cpt])])
 
     # Properties
@@ -896,13 +945,13 @@ class TestMemcpy(TestMemmove):
     def check2(self):
         result = self._get_result()
         return all([result == self.my_addr1+self.off,
-                    not self._ensure_mem(self.my_addr1+self.off,
+                    not self._ensure_mem_str(self.my_addr1+self.off,
                                          self.my_string1[:self.cpt])])
     def check3(self):
         result = self._get_result()
 
         return all([result == self.my_addr1,
-                    not self._ensure_mem(self.my_addr1,
+                    not self._ensure_mem_str(self.my_addr1,
                                          self.my_string1[self.off:self.off+self.cpt])])
     # Properties
     func = "memcpy"
@@ -927,7 +976,7 @@ class TestStrrev(Test):
 
         if result != self.my_addr:
             return False
-        return self._ensure_mem(self.my_addr, self.my_string[::-1] + "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_string[::-1] + "\x00")
 
 
     # Properties
@@ -937,7 +986,7 @@ class TestStrrev(Test):
 
 
 class TestMemcmp(Test):
-
+    # TODO: add length parameter to test
     def my_check(self, addr1, addr2, str1, str2):
         result = self._get_result()
         result = self._to_int(result)
@@ -946,9 +995,16 @@ class TestMemcmp(Test):
         elif result > 0:
             result = 1
 
-        return all([result == cmp(str1, str2),
-                    self._ensure_mem(addr1, str1),
-                    self._ensure_mem(addr2, str2)])
+        if str1 > str2:
+            computed_result = 1
+        elif str1 == str2:
+            computed_result = 0
+        else:
+            computed_result = -1
+
+        return all([result == computed_result,
+                    self._ensure_mem_str(addr1, str1),
+                    self._ensure_mem_str(addr2, str2)])
 
     # Test
     my_string1 = "He\x00l2lo"
@@ -1008,7 +1064,7 @@ class TestBzero(Test):
         self._add_arg(1, self.my_len)
 
     def check1(self):
-        return self._ensure_mem(self.my_addr, self.my_len * "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_len * "\x00")
 
     # Test2
     my_string2 = my_string * 50
@@ -1019,7 +1075,7 @@ class TestBzero(Test):
         self._add_arg(1, self.my_len2)
 
     def check2(self):
-        return self._ensure_mem(self.my_addr, self.my_len2 * "\x00")
+        return self._ensure_mem_str(self.my_addr, self.my_len2 * "\x00")
 
 
     # Properties
@@ -1035,4 +1091,3 @@ TESTS = [TestStrlen, TestStrnicmp, TestStrcpy, TestStrncpy,
          TestStrtok, TestStrsep, TestMemset, TestMemmove,
          TestStricmp, TestStrrev, TestMemcmp, TestBzero,
          TestStrncmp, TestMemcpy]
-

@@ -1,7 +1,8 @@
 import argparse
 import logging
 
-from miasm2.analysis.binary import Container
+from miasm.analysis.binary import Container
+from miasm.core.locationdb import LocationDB
 
 from sibyl.actions.action import Action
 from sibyl.learn.tracer import AVAILABLE_TRACER
@@ -61,7 +62,8 @@ class ActionLearn(Action):
 
         # If function address is not set then use the symbol address
         if self.args.address is None:
-            cont = Container.from_stream(open(self.args.program))
+            loc_db = LocationDB()
+            cont = Container.from_stream(open(self.args.program, 'rb'), loc_db)
             address = cont.loc_db.get_name_offset(self.args.functionname)
             if address is None:
                 raise ValueError("Symbol %s does not exists in %s" % (self.args.functionname, self.args.program))
@@ -87,5 +89,5 @@ class ActionLearn(Action):
         if self.args.output:
             open(self.args.output, "w+").write(createdTest)
         else:
-            print createdTest
+            print(createdTest)
 

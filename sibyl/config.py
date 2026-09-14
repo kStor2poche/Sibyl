@@ -16,7 +16,9 @@
 """Configuration handling"""
 
 import os
-import ConfigParser
+import sys
+import importlib.util as iutil
+from configparser import ConfigParser
 
 default_config = {
     "jit_engine": ["qemu", "miasm"],
@@ -41,9 +43,12 @@ default_config = {
 config_paths = [os.path.join(path, 'sibyl.conf')
                 for path in ['/etc', '/etc/sibyl', '/usr/local/etc',
                              '/usr/local/etc/sibyl']]
-if os.getenv("HOME"):
-    config_paths += [os.path.join(os.getenv("HOME"), 'sibyl.conf'),
-                     os.path.join(os.getenv("HOME"), '.sibyl.conf')]
+home_env = os.getenv("HOME")
+if home_env is not None:
+    config_paths += [os.path.join(home_env, 'sibyl.conf'),
+                     os.path.join(home_env, '.sibyl.conf'),
+                     os.path.join(home_env, '.config/sibyl.conf'),
+                     os.path.join(home_env, '.config/sibyl/sibyl.conf')]
 
 class Config(object):
     """Configuration wrapper"""
@@ -67,7 +72,7 @@ class Config(object):
     def expandpath(path):
         """Expand @path with following rules:
         - $SIBYL is replaced by the installation path of Sibyl
-        - $MIASM is replaced by the installation path of miasm2
+        - $MIASM is replaced by the installation path of miasm
         - path are expanded ('~' -> '/home/user', ...)
         """
         if "$SIBYL" in path:
@@ -76,9 +81,9 @@ class Config(object):
             path = path.replace("$SIBYL", sibyl_base)
 
         if "$MIASM" in path:
-            import miasm2
-            miasm2_base = miasm2.__path__[0]
-            path = path.replace("$MIASM", miasm2_base)
+            import miasm
+            miasm_base = miasm.__path__[0]
+            path = path.replace("$MIASM", miasm_base)
 
         path = os.path.expandvars(path)
         path = os.path.expanduser(path)
@@ -87,7 +92,7 @@ class Config(object):
 
     def parse_files(self, files):
         """Load configuration from @files (which could not exist)"""
-        cparser = ConfigParser.SafeConfigParser()
+        cparser = ConfigParser()
         cparser.read(files)
 
         config = {}
@@ -177,7 +182,7 @@ class Config(object):
         # Tests
         out.append("")
         out.append("[tests]")
-        for name, path in self.config["tests"].iteritems():
+        for name, path in self.config["tests"].items():
             out.append("%s = %s" % (name, path))
 
         # Miasm
@@ -248,13 +253,19 @@ class Config(object):
 
         # Fetch tests from files
         available_tests = {}
-        for name, fpath in self.config["tests"].iteritems():
+        for name, fpath in self.config["tests"].items():
             fpath = self.expandpath(fpath)
 
+            spec = iutil.spec_from_file_location("test_module_" + name, fpath)
+            if spec is None:
+                raise FileNotFoundError(f"{fpath} listed in tests config not found.")
+            test_module = iutil.module_from_spec(spec)
+            sys.modules["test_module_" + name] = test_module
+            assert(spec.loader is not None)
+            spec.loader.exec_module(test_module)
+
             # Get TESTS
-            context = {}
-            execfile(fpath, context)
-            available_tests[name] = context["TESTS"]
+            available_tests[name] = test_module
 
         self._available_tests = available_tests
         return self._available_tests

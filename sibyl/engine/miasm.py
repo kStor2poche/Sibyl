@@ -1,14 +1,14 @@
 import signal
+from typing import Any
 
 from sibyl.engine.engine import Engine
 from sibyl.commons import TimeoutException, END_ADDR
 
-
 class MiasmEngine(Engine):
     """Engine based on Miasm"""
 
-    def __init__(self, machine, jit_engine):
-        jitter = machine.jitter(jit_engine)
+    def __init__(self, machine, jit_engine, loc_db):
+        jitter = machine.jitter(loc_db, jit_engine)
         jitter.set_breakpoint(END_ADDR, MiasmEngine._code_sentinelle)
         self.jitter = jitter
 
@@ -18,7 +18,7 @@ class MiasmEngine(Engine):
         # nor passed to Jitted code in case of registration with signal API
         if jit_engine == "python":
             signal.signal(signal.SIGALRM, MiasmEngine._timeout)
-        elif jit_engine in ["llvm", "tcc", "gcc"]:
+        elif jit_engine in ["llvm", "gcc"]:
             self.jitter.vm.set_alarm()
         else:
             raise ValueError("Unknown engine: %s" % jit_engine)
@@ -28,8 +28,7 @@ class MiasmEngine(Engine):
 
     @staticmethod
     def _code_sentinelle(jitter):
-        jitter.run = False
-        jitter.pc = 0
+        jitter.running = False
         return True
 
     @staticmethod
@@ -58,7 +57,7 @@ class MiasmEngine(Engine):
         if memory:
             self.jitter.vm.reset_memory_page_pool()
             self.jitter.vm.reset_code_bloc_pool()
-            for addr, metadata in self.vm_mem.iteritems():
+            for addr, metadata in self.vm_mem.items():
                 self.jitter.vm.add_memory_page(addr,
                                                metadata["access"],
                                                metadata["data"])

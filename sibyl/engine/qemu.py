@@ -1,9 +1,12 @@
-from miasm2.core.utils import pck32, pck64
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.locationdb import LocationDB
+from miasm.core.utils import pck32, pck64
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 try:
-    import unicorn
+    import unicorn.unicorn as unicorn
+    import unicorn as unicorn_root
 except ImportError:
     unicorn = None
+    unicorn_root = None
 
 from sibyl.engine.engine import Engine
 from sibyl.commons import END_ADDR, init_logger
@@ -52,11 +55,13 @@ class QEMUEngine(Engine):
 class UcWrapJitter(object):
 
     def __init__(self, machine):
-        self.ira = machine.ira()
+        self.loc_db = LocationDB()
+        self.lifter_model_call = machine.lifter_model_call(loc_db = self.loc_db)
         self.renew()
 
     def renew(self):
-        ask_arch, ask_attrib = self.ira.arch.name, self.ira.attrib
+        assert(unicorn is not None)
+        ask_arch, ask_attrib = self.lifter_model_call.arch.name, self.lifter_model_call.attrib
         cpucls = UcWrapCPU.available_cpus.get((ask_arch, ask_attrib), None)
         if not cpucls:
             raise ValueError("Unimplemented architecture (%s, %s)" % (ask_arch,
@@ -71,36 +76,38 @@ class UcWrapJitter(object):
 
     def init_stack(self):
         self.vm.add_memory_page(0x1230000, PAGE_WRITE | PAGE_READ,
-                                "\x00" * 0x10000, "Stack")
-        setattr(self.cpu, self.ira.sp.name, 0x1230000 + 0x10000)
+                                b"\x00" * 0x10000, "Stack")
+        setattr(self.cpu, self.lifter_model_call.sp.name, 0x1230000 + 0x10000)
 
     def push_uint32_t(self, value):
-        setattr(self.cpu, self.ira.sp.name,
-                getattr(self.cpu, self.ira.sp.name) - self.ira.sp.size / 8)
-        self.vm.set_mem(getattr(self.cpu, self.ira.sp.name), pck32(value))
+        setattr(self.cpu, self.lifter_model_call.sp.name,
+                getattr(self.cpu, self.lifter_model_call.sp.name) - self.lifter_model_call.sp.size // 8)
+        self.vm.set_mem(getattr(self.cpu, self.lifter_model_call.sp.name), pck32(value))
 
     def push_uint64_t(self, value):
-        setattr(self.cpu, self.ira.sp.name,
-                getattr(self.cpu, self.ira.sp.name) - self.ira.sp.size / 8)
-        self.vm.set_mem(getattr(self.cpu, self.ira.sp.name), pck64(value))
+        setattr(self.cpu, self.lifter_model_call.sp.name,
+                getattr(self.cpu, self.lifter_model_call.sp.name) - self.lifter_model_call.sp.size // 8)
+        self.vm.set_mem(getattr(self.cpu, self.lifter_model_call.sp.name), pck64(value))
 
     def run(self, pc, timeout_seconds=1):
+        assert(unicorn is not None and unicorn_root is not None)
         # checking which instruction you want to emulate: THUMB/THUMB2 or others
         # Note we start at ADDRESS | 1 to indicate THUMB mode.
         try:
             if self.ask_arch == 'armt' and self.ask_attrib == 'l':
-                self.mu.emu_start(pc | 1, END_ADDR, timeout_seconds * unicorn.UC_SECOND_SCALE)
+                self.mu.emu_start(pc | 1, END_ADDR, timeout_seconds * unicorn_root.UC_SECOND_SCALE)
             else:
-                self.mu.emu_start(pc, END_ADDR, timeout_seconds * unicorn.UC_SECOND_SCALE)
+                self.mu.emu_start(pc, END_ADDR, timeout_seconds * unicorn_root.UC_SECOND_SCALE)
         except unicorn.UcError as e:
-            if getattr(self.cpu, self.ira.pc.name) != END_ADDR:
+            if getattr(self.cpu, self.lifter_model_call.pc.name) != END_ADDR:
                 raise UnexpectedStopException()
         finally:
             self.mu.emu_stop()
 
     def verbose_mode(self):
-        self.mu.hook_add(unicorn.UC_HOOK_MEM_READ_UNMAPPED, self.hook_mem_invalid)
-        self.mu.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+        assert(unicorn is not None and unicorn_root is not None)
+        self.mu.hook_add(unicorn_root.UC_HOOK_MEM_READ_UNMAPPED, self.hook_mem_invalid)
+        self.mu.hook_add(unicorn_root.UC_HOOK_CODE, self.hook_code)
 
     @staticmethod
     def hook_code(uc, address, size, user_data):
@@ -137,11 +144,15 @@ class UcWrapVM(object):
         self.mu.mem_map(addr, size)
         self.set_mem(addr, item_str)
 
-    def get_mem(self, addr, size):
-        return str(self.mu.mem_read(addr, size))
+    def get_mem(self, addr, size) -> bytes:
+        return bytes(self.mu.mem_read(addr, size))
 
-    def set_mem(self, addr, content):
-        self.mu.mem_write(addr, str(content))
+    def set_mem(self, addr, content: bytes):
+        if not isinstance(content, bytes):
+            print("puni!")
+            import traceback
+            traceback.print_stack()
+        self.mu.mem_write(addr, content)
 
     def get_all_memory(self):
         dico = {}
@@ -154,7 +165,7 @@ class UcWrapVM(object):
         return dico
 
     def is_mapped(self, address, size):
-        for addr in xrange(address, address + size):
+        for addr in range(address, address + size):
             for page in self.mem_page:
                 if page["addr"] <= addr < page["addr"] + page["size"]:
                     break
@@ -179,7 +190,7 @@ class UcWrapVM(object):
                 new_mem_page.append(page)
                 addrs.add(page["addr"])
 
-        for addr, page in mem_state.iteritems():
+        for addr, page in mem_state.items():
             # Add missing pages
             if addr not in addrs:
                 self.mu.mem_map(addr, page["size"])
@@ -194,7 +205,7 @@ class UcWrapVM(object):
 class UcWrapCPU(object):
 
     # name -> Uc value
-    regs = None
+    regs: dict[str, int] | None = None
     # PC registers, name and Uc value
     pc_reg_name = None
     pc_reg_value = None
@@ -212,13 +223,15 @@ class UcWrapCPU(object):
         self.logger = init_logger("UcWrapCPU")
 
     def init_regs(self):
-        for reg in self.regs.itervalues():
+        assert(self.regs is not None)
+        for reg in self.regs.values():
             self.mu.reg_write(reg, 0)
 
     def __setattr__(self, name, value):
         if name in ["mu", "logger", "regs", "pc_reg_name", "pc_reg_value"]:
             super(UcWrapCPU, self).__setattr__(name, value)
         elif name in self.regs:
+            assert(self.regs is not None)
             self.mu.reg_write(self.regs[name], value)
         elif name == self.pc_reg_name:
             self.mu.reg_write(self.pc_reg_value, value)
@@ -227,6 +240,7 @@ class UcWrapCPU(object):
 
     def __getattr__(self, name):
         if name in self.regs:
+            assert(self.regs is not None)
             return self.mu.reg_read(self.regs[name]) & self.reg_mask
         elif name == self.pc_reg_name:
             return self.mu.reg_read(self.pc_reg_value)
@@ -234,10 +248,12 @@ class UcWrapCPU(object):
             raise AttributeError
 
     def get_gpreg(self):
-        return {k: self.mu.reg_read(v) for k, v in self.regs.iteritems()}
+        assert(self.regs is not None)
+        return {k: self.mu.reg_read(v) for k, v in self.regs.items()}
 
     def set_gpreg(self, values):
-        for k, v in values.iteritems():
+        assert(self.regs is not None)
+        for k, v in values.items():
             self.mu.reg_write(self.regs[k], v)
 
     @classmethod
@@ -249,9 +265,9 @@ class UcWrapCPU_x86_32(UcWrapCPU):
 
     reg_mask = 0xFFFFFFFF
 
-    if unicorn:
-        uc_arch = unicorn.UC_ARCH_X86
-        uc_mode = unicorn.UC_MODE_32
+    if unicorn_root is not None:
+        uc_arch = unicorn_root.UC_ARCH_X86
+        uc_mode = unicorn_root.UC_MODE_32
 
     def __init__(self, *args, **kwargs):
         import unicorn.x86_const as csts
@@ -270,9 +286,9 @@ class UcWrapCPU_x86_64(UcWrapCPU):
 
     reg_mask = 0xFFFFFFFFFFFFFFFF
 
-    if unicorn:
-        uc_arch = unicorn.UC_ARCH_X86
-        uc_mode = unicorn.UC_MODE_64
+    if unicorn_root:
+        uc_arch = unicorn_root.UC_ARCH_X86
+        uc_mode = unicorn_root.UC_MODE_64
 
     def __init__(self, *args, **kwargs):
         import unicorn.x86_const as csts
@@ -295,9 +311,9 @@ class UcWrapCPU_arml(UcWrapCPU):
 
     reg_mask = 0xFFFFFFFF
 
-    if unicorn:
-        uc_arch = unicorn.UC_ARCH_ARM
-        uc_mode = unicorn.UC_MODE_ARM + unicorn.UC_MODE_LITTLE_ENDIAN
+    if unicorn_root:
+        uc_arch = unicorn_root.UC_ARCH_ARM
+        uc_mode = unicorn_root.UC_MODE_ARM + unicorn_root.UC_MODE_LITTLE_ENDIAN
 
     def __init__(self, *args, **kwargs):
         import unicorn.arm_const as csts
@@ -324,9 +340,9 @@ class UcWrapCPU_armtl(UcWrapCPU):
     '''
     reg_mask = 0xFFFFFFFF
 
-    if unicorn:
-        uc_arch = unicorn.UC_ARCH_ARM
-        uc_mode = unicorn.UC_MODE_THUMB
+    if unicorn_root:
+        uc_arch = unicorn_root.UC_ARCH_ARM
+        uc_mode = unicorn_root.UC_MODE_THUMB
 
     def __init__(self, *args, **kwargs):
         import unicorn.arm_const as csts
@@ -349,8 +365,8 @@ class UcWrapCPU_armtl(UcWrapCPU):
 
 class UcWrapCPU_armb(UcWrapCPU_arml):
 
-    if unicorn:
-        uc_mode = unicorn.UC_MODE_ARM + unicorn.UC_MODE_BIG_ENDIAN
+    if unicorn_root:
+        uc_mode = unicorn_root.UC_MODE_ARM + unicorn_root.UC_MODE_BIG_ENDIAN
 
     def __init__(self, *args, **kwargs):
         super(UcWrapCPU_armb, self).__init__(*args, **kwargs)
@@ -360,9 +376,9 @@ class UcWrapCPU_mips32l(UcWrapCPU):
 
     reg_mask = 0xFFFFFFFF
 
-    if unicorn:
-        uc_arch = unicorn.UC_ARCH_MIPS
-        uc_mode = unicorn.UC_MODE_MIPS32 + unicorn.UC_MODE_LITTLE_ENDIAN
+    if unicorn_root:
+        uc_arch = unicorn_root.UC_ARCH_MIPS
+        uc_mode = unicorn_root.UC_MODE_MIPS32 + unicorn_root.UC_MODE_LITTLE_ENDIAN
 
     def __init__(self, *args, **kwargs):
         import unicorn.mips_const as csts
@@ -448,8 +464,8 @@ class UcWrapCPU_mips32l(UcWrapCPU):
 
 class UcWrapCPU_mips32b(UcWrapCPU_mips32l):
 
-    if unicorn:
-        uc_mode = unicorn.UC_MODE_MIPS32 + unicorn.UC_MODE_BIG_ENDIAN
+    if unicorn_root:
+        uc_mode = unicorn_root.UC_MODE_MIPS32 + unicorn_root.UC_MODE_BIG_ENDIAN
 
     def __init__(self, *args, **kwargs):
         super(UcWrapCPU_mips32b, self).__init__(*args, **kwargs)

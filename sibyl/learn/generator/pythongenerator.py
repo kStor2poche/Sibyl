@@ -2,11 +2,11 @@ import struct
 from sibyl.learn.generator.generator import Generator
 from sibyl.learn.generator import templates as TPL
 from sibyl.learn.trace import MemoryAccess
-from miasm2.ir.ir import AssignBlock
+from miasm.ir.ir import AssignBlock
 
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp
 
 from sibyl.commons import objc_is_dereferenceable
 
@@ -34,7 +34,7 @@ for ((offset, segment), value, accessRight) in allocList:
 refUpdateTemplate = '''
 # Reference update
 refs = {refs}
-for (offset, seg), ref in refs.iteritems():
+for (offset, seg), ref in refs.items():
     newAddr = offset + self.segBase{n}[seg]
     for (writenOffset, writenSeg) in ref:
         writenAddr = writenOffset + self.segBase{n}[writenSeg]
@@ -72,12 +72,12 @@ addrList = {addrList}
 
 refs = {refs}
 ptrSize = self.abi.ira.sizeof_pointer()
-for (offsetRef, segRef), ref in refs.iteritems():
+for (offsetRef, segRef), ref in refs.items():
     newData = self.pack(offsetRef + self.segBase{n}[segRef], ptrSize)
     for (writenOffset, writenSeg) in ref:
         for i, ((offsetA, segA), data) in enumerate(addrList):
             if segA == writenSeg and (offsetA <= writenOffset < offsetA + len(data)):
-                data = data[0:writenOffset-offsetA] + newData + data[writenOffset-offsetA+ptrSize/8:]
+                data = data[0:writenOffset-offsetA] + newData + data[writenOffset-offsetA+ptrSize//8:]
                 addrList[i] = ((offsetA, segA), data)
 
 ret = ret and all([self._ensure_mem(offset + self.segBase{n}[segment], data) for ((offset, segment),data) in addrList])
@@ -137,7 +137,7 @@ class PythonGenerator(Generator):
 
         self.printer.add_empty_line()
         testList = "&".join([testListElem.format(i)
-                             for i in xrange(1, len(self.trace) + 1)])
+                             for i in range(1, len(self.trace) + 1)])
         self.printer.add_block(TPL.classTestList.format(testList=testList))
 
         self.printer.add_empty_line()
@@ -169,10 +169,10 @@ class PythonGenerator(Generator):
         # First, identify involved fields
         fields = set()
         atomic_values = {}
-        for dst, value in memories.iteritems():
+        for dst, value in memories.items():
             assert isinstance(dst, ExprMem)
             addr_expr = dst.ptr
-            for i in xrange(dst.size / 8):
+            for i in range(dst.size // 8):
                 # Split in atomic access
                 offset = ExprInt(i, addr_expr.size)
                 sub_addr_expr = expr_simp(addr_expr + offset)
@@ -203,7 +203,7 @@ class PythonGenerator(Generator):
             assert isinstance(dst, ExprMem)
             accumulator = []
             addr_expr = dst.ptr
-            for i in reversed(xrange(dst.size / 8)):
+            for i in reversed(range(dst.size // 8)):
                 # Split in atomic access
                 offset = ExprInt(i, addr_expr.size)
                 sub_addr_expr = expr_simp(addr_expr + offset)
@@ -310,7 +310,7 @@ class PythonGenerator(Generator):
                 # Must be a pointer to be deref
                 assert objc_is_dereferenceable(expr_type)
 
-                assert expr_type.objtype.size >= (expr.size / 8)
+                assert expr_type.objtype.size >= (expr.size // 8)
 
                 info = {"Clike": info_C[0],
                         "addr": addr_expr,
@@ -326,7 +326,7 @@ class PythonGenerator(Generator):
                     max_per_base[base] = info["Clike"]
 
         # Reserve memory for each bases
-        for expr, Clike in bases_to_C.iteritems():
+        for expr, Clike in bases_to_C.items():
             ptr = fixed[expr]
             ptr_size = "%s_size" % ptr
             last_field = max_per_base[expr]
@@ -343,7 +343,7 @@ class PythonGenerator(Generator):
         self.printer.add_empty_line()
 
         # Set each pointers
-        for ptr, info in sorted(ptr_to_info.iteritems(), key=lambda x:x[0]):
+        for ptr, info in sorted(ptr_to_info.items(), key=lambda x:x[0]):
             base = info["base"]
             suffix = ""
             if info["offset"] != 0:
@@ -378,7 +378,7 @@ class PythonGenerator(Generator):
             else:
                 # Set real value from regs or stack
 
-                for expr, expr_value in snapshot.init_values.iteritems():
+                for expr, expr_value in snapshot.init_values.items():
                     if expr.name == "arg%d_%s" % (i, arg_name):
                         break
                 else:
