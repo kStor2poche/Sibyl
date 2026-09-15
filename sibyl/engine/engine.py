@@ -1,11 +1,10 @@
-from miasm.core.locationdb import LocationDB
-from miasm.jitter.jitload import Jitter
 
-from sibyl.commons import init_logger
 from miasm.analysis.machine import Machine
 
+from sibyl.commons import init_logger
 
-class Engine(object):
+
+class Engine:
     """Wrapper on execution engine"""
 
     def __init__(self, machine: Machine):

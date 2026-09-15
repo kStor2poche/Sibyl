@@ -15,7 +15,7 @@
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 
 
-class ABI(object):
+class ABI:
     "Parent class, stand for an ABI"
 
     # Associated architectures
@@ -27,7 +27,6 @@ class ABI(object):
 
     def reset(self):
         "Reset the current ABI"
-        pass
 
     def add_arg(self, number, element):
         """Add a function argument
@@ -53,7 +52,7 @@ class ABIRegsStack(ABI):
     args = None         # order => element
 
     def __init__(self, *args, **kwargs):
-        super(ABIRegsStack, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.args = {}
 
     def add_arg(self, number: int, element: int):

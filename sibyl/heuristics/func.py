@@ -1,17 +1,17 @@
 "Module for function address guessing"
 import logging
+import os
 import re
+import shutil
+import subprocess
 import tempfile
 import traceback
-import subprocess
-import shutil
-import os
 
 from miasm.core.asmblock import AsmBlockBad, log_asmblock
 
-from sibyl.heuristics.heuristic import Heuristic
-import sibyl.heuristics.csts as csts
 from sibyl.config import config
+from sibyl.heuristics import csts
+from sibyl.heuristics.heuristic import Heuristic
 
 
 def recursive_call(func_heur, addresses):
@@ -84,8 +84,7 @@ def _virt_find(virt, pattern: bytes): # comment seems to be misleading, virt bei
     if not sections:
         raise StopIteration
     offset -= sections[0].ph.vaddr
-    if offset < 0:
-        offset = 0
+    offset = max(offset, 0)
     for s in sections:
         data = virt.parent.content[s.ph.offset:s.ph.offset + s.ph.filesz]
         ret = regexp.finditer(data[offset:])
@@ -230,7 +229,7 @@ class FuncHeuristic(Heuristic):
         @machine: miasm2's Machine instance
         @filename: target's filename
         """
-        super(FuncHeuristic, self).__init__()
+        super().__init__()
         self.cont = cont
         self.machine = machine
         self.filename = filename
@@ -242,7 +241,7 @@ class FuncHeuristic(Heuristic):
             do_recursive = True
             self.heuristics.remove(recursive_call)
 
-        super(FuncHeuristic, self).do_votes()
+        super().do_votes()
         addresses = self._votes
 
         if do_recursive:

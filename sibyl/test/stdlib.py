@@ -17,10 +17,15 @@
 
 import struct
 
-from sibyl.test.ctype_data import _nl_C_LC_CTYPE_class, _nl_C_LC_CTYPE_tolower, _nl_C_LC_CTYPE_toupper, _nl_C_name
-from sibyl.test.test import Test, TestSetTest
-
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+
+from sibyl.test.ctype_data import (
+    _nl_C_LC_CTYPE_class,
+    _nl_C_LC_CTYPE_tolower,
+    _nl_C_LC_CTYPE_toupper,
+    _nl_C_name,
+)
+from sibyl.test.test import Test, TestSetTest
 
 
 class TestAbs(Test):

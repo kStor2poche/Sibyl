@@ -1,14 +1,13 @@
-import argparse
 import logging
 
 from miasm.analysis.binary import Container
 from miasm.core.locationdb import LocationDB
 
+from sibyl.abi.x86 import ABI_AMD64_SYSTEMV
 from sibyl.actions.action import Action
-from sibyl.learn.tracer import AVAILABLE_TRACER
 from sibyl.learn.generator import AVAILABLE_GENERATOR
 from sibyl.learn.learn import TestCreator
-from sibyl.abi.x86 import ABI_AMD64_SYSTEMV
+from sibyl.learn.tracer import AVAILABLE_TRACER
 
 
 class ActionLearn(Action):
@@ -78,7 +77,7 @@ class ActionLearn(Action):
                                   main, abi, machine, self.args.avoid_null)
 
         if self.args.verbose == 0:
-            testcreator.logger.setLevel(logging.WARN)
+            testcreator.logger.setLevel(logging.WARNING)
         if self.args.verbose == 1:
             testcreator.logger.setLevel(logging.INFO)
         elif self.args.verbose == 2:

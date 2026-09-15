@@ -1,14 +1,13 @@
 import struct
-from sibyl.learn.generator.generator import Generator
-from sibyl.learn.generator import templates as TPL
-from sibyl.learn.trace import MemoryAccess
-from miasm.ir.ir import AssignBlock
 
-from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.expression.expression import *
 from miasm.expression.simplifications import expr_simp
+from miasm.ir.ir import AssignBlock
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 from sibyl.commons import objc_is_dereferenceable
+from sibyl.learn.generator import templates as TPL
+from sibyl.learn.generator.generator import Generator
 
 initDefTemplate = '''def __init__(self, *args, **kwargs):
     super(Test{funcname}, self).__init__(*args, **kwargs)
@@ -371,7 +370,7 @@ class PythonGenerator(Generator):
                 if symbol not in fixed:
                     # The argument is not used as a pointer
                     #TODO
-                    self.logger.warn("argument %s not used?!", arg_name)
+                    self.logger.warning("argument %s not used?!", arg_name)
                     continue
                 else:
                     value = fixed[symbol]

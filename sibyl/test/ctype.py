@@ -52,14 +52,14 @@ class TestIsCharset(Test):
     """
 
     def reset_full(self, *args, **kwargs):
-        super(TestIsCharset, self).reset_full(*args, **kwargs)
+        super().reset_full(*args, **kwargs)
         # Reset tests tree
         self.cur_tree = self.decision_tree
         self.next_test = self.cur_tree["t"]
         self.tests = TestSetGenerator(self.test_iter())
 
     def reset(self, *args, **kwargs):
-        super(TestIsCharset, self).reset_full(*args, **kwargs)
+        super().reset_full(*args, **kwargs)
 
     def check_gen(self, result=None): # TODO: les valeurs de retour sont pas {0,1} en vrai (cf. man)
         if result == None:

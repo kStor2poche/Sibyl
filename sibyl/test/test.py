@@ -16,25 +16,27 @@
 
 
 import random
-from typing import Generator
-from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm.expression.simplifications import expr_simp
+from collections.abc import Generator
+
 from miasm.core.modint import mod_size2int
+from miasm.expression.simplifications import expr_simp
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+
 try:
     import pycparser
 except ImportError:
     pycparser = None
 else:
-    from miasm.core.objc import CTypesManagerNotPacked, CHandler
-    from miasm.core.ctypesmngr import CAstTypes
     from miasm.arch.x86.ctype import CTypeAMD64_unk
+    from miasm.core.ctypesmngr import CAstTypes
+    from miasm.core.objc import CHandler, CTypesManagerNotPacked
     from miasm.jitter.jitload import Jitter
 
-from sibyl.commons import HeaderFile
 from sibyl.abi.abi import ABI
+from sibyl.commons import HeaderFile
 
 
-class Test(object):
+class Test:
     "Main class for tests"
 
     # Elements to override
@@ -45,7 +47,6 @@ class Test(object):
 
     def init(self):
         "Called for setting up the test case"
-        pass
 
     def check(self) -> bool:
         """Called to check test result
@@ -91,7 +92,7 @@ class Test(object):
 
         # Memory alignement
         mem += bytes([random.randint(0, 255) \
-                            for _ in range((16 - len(mem) % 16))])
+                            for _ in range(16 - len(mem) % 16)])
 
         self.jitter.vm.add_memory_page(self.alloc_pool, right, mem, comment)
         to_ret = self.alloc_pool
@@ -179,7 +180,7 @@ class Test(object):
         return int.from_bytes(element, byteorder="little") # TODO: little endian hard coded ????!!!!?????
 
 
-class TestSet(object):
+class TestSet:
     """Stand for a set of test to run, potentially associated to a logic form
 
     The logic form is represented as a tree, in which nodes are TestSet children
@@ -207,7 +208,7 @@ class TestSetAnd(TestSet):
     """
 
     def __init__(self, ts1, ts2):
-        super(TestSetAnd, self).__init__()
+        super().__init__()
         assert isinstance(ts1, TestSet)
         assert isinstance(ts2, TestSet)
         self._ts1 = ts1
@@ -232,7 +233,7 @@ class TestSetOr(TestSet):
     """
 
     def __init__(self, ts1, ts2):
-        super(TestSetOr, self).__init__()
+        super().__init__()
         assert isinstance(ts1, TestSet)
         assert isinstance(ts2, TestSet)
         self._ts1 = ts1
@@ -259,7 +260,7 @@ class TestSetTest(TestSet):
     """
 
     def __init__(self, init, check):
-        super(TestSetTest, self).__init__()
+        super().__init__()
         self._init = init
         self._check = check
 
@@ -291,7 +292,7 @@ class TestHeader(Test):
     header = None
 
     def __init__(self, *args, **kwargs):
-        super(TestHeader, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Requirement check
         if pycparser is None:
             raise ImportError("pycparser module is needed to launch tests based"

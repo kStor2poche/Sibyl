@@ -1,8 +1,8 @@
 import signal
-from typing import Any
 
+from sibyl.commons import END_ADDR, TimeoutException
 from sibyl.engine.engine import Engine
-from sibyl.commons import TimeoutException, END_ADDR
+
 
 class MiasmEngine(Engine):
     """Engine based on Miasm"""
@@ -23,7 +23,7 @@ class MiasmEngine(Engine):
         else:
             raise ValueError("Unknown engine: %s" % jit_engine)
 
-        super(MiasmEngine, self).__init__(machine)
+        super().__init__(machine)
 
 
     @staticmethod

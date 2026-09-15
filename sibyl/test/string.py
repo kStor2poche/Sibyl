@@ -18,8 +18,8 @@ import struct
 
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
-from sibyl.test.test import Test, TestSetTest
 from sibyl.test.ctype_data import _nl_C_LC_CTYPE_tolower
+from sibyl.test.test import Test, TestSetTest
 
 
 class TestStrlen(Test):

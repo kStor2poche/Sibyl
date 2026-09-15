@@ -16,13 +16,13 @@
 #
 # Ported to radare2 - Michael Messner @s3cur1ty_de
 
-import r2pipe
 import json
 import os
-import sys
-import time
-import re
 import subprocess
+import time
+
+import r2pipe
+
 
 # Sibyl launching
 def exec_cmd(command_line):

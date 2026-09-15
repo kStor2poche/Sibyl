@@ -63,7 +63,7 @@ class ABI_AMD64_MS(ABIRegsStack_x86):
         # Shadow stack reservation: 0x20 bytes
         for i in range(4):
             self.vm_push(0)
-        super(ABI_AMD64_MS, self).set_ret(ret_addr)
+        super().set_ret(ret_addr)
 
 
 ABIS = [ABIStdCall_x86_32, ABIFastCall_x86_32, ABI_AMD64_SYSTEMV, ABI_AMD64_MS]

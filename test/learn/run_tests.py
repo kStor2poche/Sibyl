@@ -1,17 +1,14 @@
-import subprocess
 import os
-import sys
-import tempfile
+import subprocess
 import types
-from utils.log import log_error, log_success, log_info
 
-from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
 from miasm.core.locationdb import LocationDB
+from utils.log import log_error, log_info, log_success
 
-from sibyl.testlauncher import TestLauncher
 from sibyl.abi.x86 import ABI_AMD64_SYSTEMV
 from sibyl.config import config
+from sibyl.testlauncher import TestLauncher
 
 # Tests to fix
 unsupported = [
@@ -84,7 +81,7 @@ def test_learn(args):
 
             mod = types.ModuleType("testclass")
             exec(stdout, mod.__dict__)
-            classTest = getattr(mod, "TESTS")[0]
+            classTest = mod.TESTS[0]
             with open(filename, "rb") as f:
                 tl = TestLauncher(f.read(), machine, ABI_AMD64_SYSTEMV, [classTest],
                                   config.jit_engine)

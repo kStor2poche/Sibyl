@@ -1,20 +1,20 @@
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import pck32, pck64
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+
 try:
-    import unicorn.unicorn as unicorn
     import unicorn as unicorn_root
+    from unicorn import unicorn
 except ImportError:
     unicorn = None
     unicorn_root = None
 
-from sibyl.engine.engine import Engine
 from sibyl.commons import END_ADDR, init_logger
+from sibyl.engine.engine import Engine
 
 
 class UnexpectedStopException(Exception):
     """Exception to be called on timeouts"""
-    pass
 
 class QEMUEngine(Engine):
     """Engine based on QEMU, using unicorn as a wrapper"""
@@ -24,7 +24,7 @@ class QEMUEngine(Engine):
             raise ImportError("QEMU engine unavailable: 'unicorn' import error")
 
         self.jitter = UcWrapJitter(machine)
-        super(QEMUEngine, self).__init__(machine)
+        super().__init__(machine)
 
 
     def run(self, address, timeout_seconds):
@@ -52,7 +52,7 @@ class QEMUEngine(Engine):
         self.jitter.cpu.set_gpreg(self.vm_regs)
 
 
-class UcWrapJitter(object):
+class UcWrapJitter:
 
     def __init__(self, machine):
         self.loc_db = LocationDB()
@@ -98,7 +98,7 @@ class UcWrapJitter(object):
                 self.mu.emu_start(pc | 1, END_ADDR, timeout_seconds * unicorn_root.UC_SECOND_SCALE)
             else:
                 self.mu.emu_start(pc, END_ADDR, timeout_seconds * unicorn_root.UC_SECOND_SCALE)
-        except unicorn.UcError as e:
+        except unicorn.UcError:
             if getattr(self.cpu, self.lifter_model_call.pc.name) != END_ADDR:
                 raise UnexpectedStopException()
         finally:
@@ -120,7 +120,7 @@ class UcWrapJitter(object):
         return False
 
 
-class UcWrapVM(object):
+class UcWrapVM:
 
     def __init__(self, mu):
         self.mem_page = []
@@ -198,7 +198,7 @@ class UcWrapVM(object):
         self.mem_page = new_mem_page
 
 
-class UcWrapCPU(object):
+class UcWrapCPU:
 
     # name -> Uc value
     regs: dict[str, int] | None = None
@@ -225,7 +225,7 @@ class UcWrapCPU(object):
 
     def __setattr__(self, name, value):
         if name in ["mu", "logger", "regs", "pc_reg_name", "pc_reg_value"]:
-            super(UcWrapCPU, self).__setattr__(name, value)
+            super().__setattr__(name, value)
         elif name in self.regs:
             assert(self.regs is not None)
             self.mu.reg_write(self.regs[name], value)
@@ -275,7 +275,7 @@ class UcWrapCPU_x86_32(UcWrapCPU):
         }
         self.pc_reg_name = "EIP"
         self.pc_reg_value = csts.UC_X86_REG_EIP
-        super(UcWrapCPU_x86_32, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class UcWrapCPU_x86_64(UcWrapCPU):
@@ -300,7 +300,7 @@ class UcWrapCPU_x86_64(UcWrapCPU):
         }
         self.pc_reg_name = "RIP"
         self.pc_reg_value = csts.UC_X86_REG_RIP
-        super(UcWrapCPU_x86_64, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class UcWrapCPU_arml(UcWrapCPU):
@@ -328,7 +328,7 @@ class UcWrapCPU_arml(UcWrapCPU):
         }
         self.pc_reg_name = "PC"
         self.pc_reg_value = csts.UC_ARM_REG_PC
-        super(UcWrapCPU_arml, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 class UcWrapCPU_armtl(UcWrapCPU):
     '''
@@ -357,7 +357,7 @@ class UcWrapCPU_armtl(UcWrapCPU):
         }
         self.pc_reg_name = "PC"
         self.pc_reg_value = csts.UC_ARM_REG_PC
-        super(UcWrapCPU_armtl, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 class UcWrapCPU_armb(UcWrapCPU_arml):
 
@@ -365,7 +365,7 @@ class UcWrapCPU_armb(UcWrapCPU_arml):
         uc_mode = unicorn_root.UC_MODE_ARM + unicorn_root.UC_MODE_BIG_ENDIAN
 
     def __init__(self, *args, **kwargs):
-        super(UcWrapCPU_armb, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class UcWrapCPU_mips32l(UcWrapCPU):
@@ -455,7 +455,7 @@ class UcWrapCPU_mips32l(UcWrapCPU):
         }
         self.pc_reg_name = "PC"
         self.pc_reg_value = csts.UC_MIPS_REG_PC
-        super(UcWrapCPU_mips32l, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class UcWrapCPU_mips32b(UcWrapCPU_mips32l):
@@ -464,7 +464,7 @@ class UcWrapCPU_mips32b(UcWrapCPU_mips32l):
         uc_mode = unicorn_root.UC_MODE_MIPS32 + unicorn_root.UC_MODE_BIG_ENDIAN
 
     def __init__(self, *args, **kwargs):
-        super(UcWrapCPU_mips32b, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 UcWrapCPU_x86_32.register("x86", 32)

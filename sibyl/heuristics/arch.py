@@ -29,5 +29,5 @@ class ArchHeuristic(Heuristic):
     ]
 
     def __init__(self, stream):
-        super(ArchHeuristic, self).__init__()
+        super().__init__()
         self.stream = stream

@@ -2,13 +2,12 @@
 This module gives a tracer that uses pin (3.0-76991-gcc-linux) to run the program
 '''
 
-import tempfile
 import os
+import tempfile
 
-import sibyl
-from sibyl.learn.tracer.tracer import Tracer
-from sibyl.learn.trace import Trace, Snapshot
 from sibyl.config import config
+from sibyl.learn.trace import Snapshot, Trace
+from sibyl.learn.tracer.tracer import Tracer
 
 
 class TracerPin(Tracer):

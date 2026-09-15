@@ -13,16 +13,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
-import os
 import json
+import os
+import re
 import subprocess
 import time
-import re
 
-import idaapi
-import idc
 import ida_kernwin
+import idaapi
 import idautils
+import idc
 
 # Find SIBYL find.py
 identify_binary = "sibyl"
@@ -266,7 +266,7 @@ Testsets to use:
     }
 
     # int __cdecl(int, int) -> __cdecl
-    gtype_matcher = re.compile(".+ \*?([^\(]+)\([^\)]*\)")
+    gtype_matcher = re.compile(r".+ \*?([^\(]+)\([^\)]*\)")
 
     @property
     def abi(self):

@@ -15,9 +15,9 @@
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 """Configuration handling"""
 
+import importlib.util as iutil
 import os
 import sys
-import importlib.util as iutil
 from configparser import ConfigParser
 
 default_config = {
@@ -50,7 +50,7 @@ if home_env is not None:
                      os.path.join(home_env, '.config/sibyl.conf'),
                      os.path.join(home_env, '.config/sibyl/sibyl.conf')]
 
-class Config(object):
+class Config:
     """Configuration wrapper"""
 
     def __init__(self, default_config, files):

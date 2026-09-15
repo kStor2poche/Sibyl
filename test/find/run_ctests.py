@@ -2,13 +2,12 @@
 import os
 import re
 import subprocess
-from argparse import ArgumentParser
 
-from miasm.loader.elf import STT_GNU_IFUNC, SHN_UNDEF
-from utils.log import log_error, log_success, log_info
+from miasm.loader.elf import SHN_UNDEF, STT_GNU_IFUNC
+from miasm.loader.elf_init import ELF
+from utils.log import log_error, log_info, log_success
 
 from sibyl.heuristics.func import FuncHeuristic
-from miasm.loader.elf_init import ELF
 
 match_C = re.compile(r"\w+[ \*]+(\w+)\(.*\)")
 custom_tag = b"my_"

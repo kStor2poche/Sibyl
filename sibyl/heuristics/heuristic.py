@@ -1,7 +1,7 @@
 "Main class for heuristics"
 
 
-class Heuristic(object):
+class Heuristic:
     """Main class for heuristics, handle common methods related to them"""
 
     # Enabled passes
@@ -39,8 +39,7 @@ class Heuristic(object):
         for func in self.heuristics:
             if func.__name__ == name:
                 return func
-        else:
-            raise KeyError("Unable to find %s" % name)
+        raise KeyError("Unable to find %s" % name)
 
     def guess(self):
         """Return the best candidate"""

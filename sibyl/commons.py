@@ -1,12 +1,13 @@
 """Common / shared elements"""
 import logging
+
 try:
     import pycparser
 except ImportError:
     pycparser = None
 finally:
-    from miasm.core.ctypesmngr import c_to_ast, CTypeFunc
-    from miasm.core.objc import ObjCPtr, ObjCArray
+    from miasm.core.ctypesmngr import CTypeFunc, c_to_ast
+    from miasm.core.objc import ObjCArray, ObjCPtr
 
 def init_logger(name):
     logger = logging.getLogger(name)
@@ -22,7 +23,6 @@ def init_logger(name):
 
 class TimeoutException(Exception):
     """Exception to be called on timeouts"""
-    pass
 
 
 END_ADDR = 0x1337babe
@@ -45,7 +45,7 @@ def print_table(ligs, title=True, separator='|', level=0, align=""):
             print("%s%s" % (tab, "-" * len(fmt.format(*lig))))
         print("%s%s" % (tab, fmt.format(*lig)))
 
-class HeaderFile(object):
+class HeaderFile:
     """Abstract representation of a Header file"""
 
     def __init__(self, header_data, ctype_manager):
@@ -102,7 +102,7 @@ def objc_is_dereferenceable(target_type):
     return isinstance(target_type, (ObjCPtr, ObjCArray))
 
 
-class FuncPrototype(object):
+class FuncPrototype:
     """Stand for a function's prototype"""
 
     def __init__(self, func_name, func_type, *args, **kwargs):

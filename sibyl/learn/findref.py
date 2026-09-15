@@ -1,21 +1,25 @@
-import struct
 import logging
-from sys import stderr
+import struct
 
-from miasm.jitter.loader.elf import vm_load_elf
-from miasm.analysis.machine import Machine
-from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_ACCESS_VIOL, EXCEPT_DIV_BY_ZERO, EXCEPT_PRIV_INSN
-from miasm.core.bin_stream import bin_stream_vm
-from miasm.analysis.dse import ESETrackModif
 import miasm.expression.expression as miasm_expr
-from miasm.ir.ir import AssignBlock
+from miasm.analysis.dse import ESETrackModif
+from miasm.analysis.machine import Machine
+from miasm.core.bin_stream import bin_stream_vm
 from miasm.core.objc import CHandler
+from miasm.ir.ir import AssignBlock
+from miasm.jitter.csts import (
+    EXCEPT_ACCESS_VIOL,
+    EXCEPT_DIV_BY_ZERO,
+    EXCEPT_PRIV_INSN,
+    PAGE_READ,
+)
+from miasm.jitter.loader.elf import vm_load_elf
 
 from sibyl.commons import objc_is_dereferenceable
 from sibyl.config import config
 
 
-class ExtractRef(object):
+class ExtractRef:
     '''
     Class used to concolic run a snapshot and extract references to input
     '''

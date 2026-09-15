@@ -14,17 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 
-import os
 
-from miasm.core.locationdb import LocationDB
-from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
-from sibyl.config import config, config_paths
 from sibyl.actions.action import Action
-from sibyl.heuristics.func import FuncHeuristic, ida_funcs, ghidra_funcs
-from sibyl.heuristics.arch import ArchHeuristic
-
+from sibyl.config import config
+from sibyl.heuristics.func import FuncHeuristic, ghidra_funcs, ida_funcs
 
 heur_names = FuncHeuristic(None, None, "").heuristic_names
 

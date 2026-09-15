@@ -1,7 +1,7 @@
 class LearnException(Exception):
 
     def __init__(self, info):
-        super(LearnException, self).__init__()        
+        super().__init__()        
         self.info = info
 
     def repr_class_name(self):
@@ -14,7 +14,7 @@ class LearnException(Exception):
 class ReturnPointerException(LearnException):
 
     def __init__(self):
-        super(ReturnPointerException, self).__init__(
+        super().__init__(
             "return value might be a pointer")
 
     def repr_class_name(self):

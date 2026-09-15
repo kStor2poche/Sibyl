@@ -1,9 +1,9 @@
-from argparse import ArgumentParser
 import os
+from argparse import ArgumentParser
 
-from utils.log import log_info
 from find import test_find
 from learn import test_learn
+from utils.log import log_info
 
 AVAILABLE_TEST = [
     test_find,

@@ -17,20 +17,18 @@
 """This module provides a way to prepare and launch Sibyl tests on a binary"""
 
 
-from operator import add
 import time
-import signal
-import logging
+
+from miasm.analysis.binary import Container, ContainerELF, ContainerPE
 from miasm.analysis.machine import Machine
-from miasm.analysis.binary import Container, ContainerPE, ContainerELF
-from miasm.arch.arm import lifter_model_call
 from miasm.core.locationdb import LocationDB
 
-from sibyl.commons import init_logger, TimeoutException, END_ADDR
-from sibyl.engine import QEMUEngine, MiasmEngine
+from sibyl.commons import END_ADDR, init_logger
 from sibyl.config import config
+from sibyl.engine import MiasmEngine, QEMUEngine
 
-class TestLauncher(object):
+
+class TestLauncher:
     "Launch tests for a function and report matching candidates"
 
     def __init__(self, data: bytes, architecture, abicls, tests_cls, engine_name,
@@ -70,12 +68,12 @@ class TestLauncher(object):
 
         libs = None
         if isinstance(self.ctr, ContainerPE):
-            from miasm.jitter.loader.pe import preload_pe, libimp_pe
+            from miasm.jitter.loader.pe import libimp_pe, preload_pe
             libs = libimp_pe()
             preload_pe(self.jitter.vm, self.ctr.executable, libs)
 
         elif isinstance(self.ctr, ContainerELF):
-            from miasm.jitter.loader.elf import preload_elf, libimp_elf
+            from miasm.jitter.loader.elf import libimp_elf, preload_elf
             libs = libimp_elf()
             preload_elf(self.jitter.vm, self.ctr.executable, libs, elf_base_addr=self.map_addr)
 

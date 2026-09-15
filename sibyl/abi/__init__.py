@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Sibyl. If not, see <http://www.gnu.org/licenses/>.
 
-from sibyl.abi.x86 import ABIS as ABIS_X86
 from sibyl.abi.arm import ABIS as ABIS_ARM
 from sibyl.abi.mep import ABIS as ABIS_MEP
 from sibyl.abi.mips import ABIS as ABIS_MIPS
+from sibyl.abi.x86 import ABIS as ABIS_X86
+
 ABIS = ABIS_X86 + ABIS_ARM + ABIS_MEP + ABIS_MIPS
 __all__ = ["ABIS"]

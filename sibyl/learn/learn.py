@@ -1,5 +1,4 @@
 import logging
-import copy
 from typing import Literal
 
 from miasm.core.locationdb import LocationDB
@@ -8,18 +7,18 @@ try:
     import pycparser
 except ImportError:
     raise ImportError("pycparser module is needed to learn and generate")
-from miasm.core.objc import CTypesManagerNotPacked
-from miasm.core.ctypesmngr import CAstTypes
 from miasm.arch.x86.ctype import CTypeAMD64_unk
+from miasm.core.ctypesmngr import CAstTypes
+from miasm.core.objc import CTypesManagerNotPacked
 
-from sibyl.learn.replay import Replay
-from sibyl.learn.findref import ExtractRef
-from sibyl.learn.trace import Trace
 from sibyl.commons import HeaderFile
 from sibyl.config import config
+from sibyl.learn.findref import ExtractRef
+from sibyl.learn.replay import Replay
+from sibyl.learn.trace import Trace
 
 
-class TestCreator(object):
+class TestCreator:
 
     """Class used to create a test. Each instance is dedicated to only one learned function"""
 
@@ -141,7 +140,7 @@ class TestCreator(object):
             self.logger.info("Replaying snapshot %d", i)
             r = Replay(self, snapshot)
             if not r.run():
-                self.logger.warn("Replay error: %s", ", ".join(r.replayexception))
+                self.logger.warning("Replay error: %s", ", ".join(r.replayexception))
                 to_remove.append(snapshot)
         for snapshot in to_remove:
             self.trace.remove(snapshot)

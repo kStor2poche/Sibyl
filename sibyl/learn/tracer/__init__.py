@@ -3,8 +3,8 @@
 - memory accesses
 """
 
-from sibyl.learn.tracer.pin import TracerPin
 from sibyl.learn.tracer.miasm import TracerMiasm
+from sibyl.learn.tracer.pin import TracerPin
 
 AVAILABLE_TRACER = {
     "pin": TracerPin,

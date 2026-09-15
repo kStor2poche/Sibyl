@@ -1,8 +1,8 @@
-import subprocess
 import os
+import subprocess
 
 
-class Tracer(object):
+class Tracer:
 
     '''
     Abstract class used to represent a tracer

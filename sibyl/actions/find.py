@@ -16,28 +16,25 @@
 
 import json
 import logging
-import pickle
 import sys
-from collections import namedtuple
-from multiprocessing import Manager, cpu_count, Pool, Queue
 import traceback
-from types import CodeType, FunctionType
+from collections import namedtuple
+from multiprocessing import Manager, Pool, Queue, cpu_count
 
 from miasm.analysis.machine import Machine
-from miasm.analysis.binary import Container
 
-from sibyl.config import config
-from sibyl.testlauncher import TestLauncher
 from sibyl.abi import ABIS
-from sibyl.heuristics.arch import ArchHeuristic
-from sibyl.commons import print_table
 from sibyl.actions.action import Action
+from sibyl.commons import print_table
+from sibyl.config import config
+from sibyl.heuristics.arch import ArchHeuristic
+from sibyl.testlauncher import TestLauncher
 
 # Message exchanged with workers
 MessageTaskDone = namedtuple("MessageTaskDone", ["address", "results"])
 
 
-class FakeProcess(object):
+class FakeProcess:
     """Mock simulating Process API in monoprocess mode"""
 
     def __init__(self, target, args):
@@ -237,7 +234,7 @@ class ActionFind(Action):
 
         # Clean output if needed
         if self.args.verbose > 0:
-            print("")
+            print()
 
         # End connexions
         if not self.args.monoproc:

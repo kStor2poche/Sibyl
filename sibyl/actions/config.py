@@ -16,8 +16,8 @@
 
 import os
 
-from sibyl.config import config, config_paths
 from sibyl.actions.action import Action
+from sibyl.config import config, config_paths
 
 
 class ActionConfig(Action):

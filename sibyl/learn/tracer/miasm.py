@@ -2,22 +2,22 @@
 This module gives a tracer that uses miasm to run the program
 '''
 
-from miasm.arch.mips32.jit import LocationDB
-from miasm.jitter.jitcore_python import JitCore_Python
-
-from sibyl.learn.tracer.tracer import Tracer
-from sibyl.learn.trace import Trace, Snapshot
-
-from miasm.jitter.emulatedsymbexec import EmulatedSymbExec
-from miasm.jitter.csts import PAGE_READ
 from miasm.analysis.machine import Machine
+from miasm.arch.mips32.jit import LocationDB
+from miasm.jitter.csts import PAGE_READ
+from miasm.jitter.emulatedsymbexec import EmulatedSymbExec
+from miasm.jitter.jitcore_python import JitCore_Python
 from miasm.jitter.loader.elf import vm_load_elf
+
+from sibyl.learn.trace import Snapshot, Trace
+from sibyl.learn.tracer.tracer import Tracer
+
 
 class CustomEmulatedSymbExec(EmulatedSymbExec):
     '''New emulator that trap all memory read and write which is needed by the miasm tracer'''
 
     def __init__(self, *args, **kwargs):
-        super(CustomEmulatedSymbExec, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._read_callback = set()
         self._write_callback = set()
@@ -43,14 +43,14 @@ class CustomEmulatedSymbExec(EmulatedSymbExec):
         for callback in self._read_callback:
             callback(self, expr_mem)
 
-        return super(CustomEmulatedSymbExec, self).mem_read(expr_mem)
+        return super().mem_read(expr_mem)
 
     def mem_write(self, dest, data):
         '''Function call for each write. We overwrite it to intercept the write'''
         for callback in self._write_callback:
             callback(self, dest, data)
 
-        super(CustomEmulatedSymbExec, self).mem_write(dest, data)
+        super().mem_write(dest, data)
 
 
 class TracerMiasm(Tracer):
@@ -58,7 +58,7 @@ class TracerMiasm(Tracer):
     '''Tracer that uses miasm'''
 
     def __init__(self, *args, **kwargs):
-        super(TracerMiasm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.isTracing = False
         self.trace = None

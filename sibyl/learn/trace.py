@@ -1,19 +1,16 @@
-from collections import namedtuple
 import struct
 
-from miasm.core.locationdb import LocationDB
-
-from sibyl.learn.replay import Replay
-from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm.core.graph import DiGraph
 from miasm.analysis.machine import Machine
+from miasm.core.graph import DiGraph
+from miasm.core.locationdb import LocationDB
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 
 class Trace(list):
     '''List of snapshot'''
 
     def __init__(self, *args, **kwargs):
-        super(Trace, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Image name -> symbol name -> in-memory address
         self.symbols = {}
 
@@ -46,7 +43,7 @@ class Trace(list):
         return clean_trace
 
 
-class MemoryAccess(object):
+class MemoryAccess:
     '''Represent a memory block, read or write by the learned function'''
 
     def __init__(self, size, data: bytes, access):
@@ -69,7 +66,7 @@ class MemoryAccess(object):
         return "<" + str(self) + ">"
 
 
-class Snapshot(object):
+class Snapshot:
 
     @classmethod
     def get_byte(cls, value, byte) -> bytes:

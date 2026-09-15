@@ -3,7 +3,7 @@ from miasm.analysis.machine import Machine
 from sibyl.learn.learn import TestCreator
 
 
-class Generator(object):
+class Generator:
     '''
     Abstract class used to represent a generator
     A generator is a class that create a test from a snapshot
@@ -29,7 +29,7 @@ class Generator(object):
         raise NotImplementedError("Abstract method")
 
 
-class Printer(object):
+class Printer:
 
     default_indentation_size = 4
 
