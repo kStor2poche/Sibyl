@@ -29,11 +29,11 @@ class TracerPin(Tracer):
 
         pintool = config.pin_tracer
         if not pintool or not os.path.exists(pintool):
-            raise RuntimeError("Unable to found the PIN-tool at '%s'. Please "\
-                               "update the associated configuration" % pintool)
+            raise RuntimeError(f"Unable to found the PIN-tool at '{pintool}'. Please "\
+                               "update the associated configuration")
 
         cmd = [os.path.join(config.pin_root, "pin"), "-ifeellucky", "-t",
-               pintool, "-a", "0x%x" % self.address, "-o", tmpName,
+               pintool, "-a", f"0x{self.address:x}", "-o", tmpName,
                "--", self.program]
         self._run_cmd(cmd)
 

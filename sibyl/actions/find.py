@@ -33,21 +33,6 @@ from sibyl.testlauncher import TestLauncher
 # Message exchanged with workers
 MessageTaskDone = namedtuple("MessageTaskDone", ["address", "results"])
 
-
-class FakeProcess:
-    """Mock simulating Process API in monoprocess mode"""
-
-    def __init__(self, target, args):
-        self.target = target
-        self.args = args
-
-    def start(self, *args, **kwargs):
-        self.target(*self.args)
-
-    def join(self, *args, **kwargs):
-        pass
-
-
 class ActionFind(Action):
     """Action for actually launching function guessing"""
 
@@ -121,8 +106,6 @@ class ActionFind(Action):
         # Parse args
         self.map_addr = int(self.args.mapping_base, 0)
         cpu_c = 1 if self.args.monoproc else cpu_count()
-        if self.args.monoproc:
-            Process = FakeProcess
 
         # Architecture
         architecture = False
@@ -134,12 +117,12 @@ class ActionFind(Action):
             if not architecture:
                 raise ValueError("Unable to recognize the architecture, please specify it")
             if self.args.verbose > 0:
-                print("Guessed architecture: %s" % architecture)
+                print(f"Guessed architecture: {architecture}")
 
         self.architecture = architecture
         if not self.args.address:
             print("No function address provided. Use 'sibyl func' to discover addresses")
-            exit(-1)
+            sys.exit(-1)
         addresses = []
         for address in self.args.address:
             if address == '-':
@@ -157,21 +140,21 @@ class ActionFind(Action):
 
         # Select ABI
         if self.args.abi is None:
-            candidates = set(abicls for abicls in ABIS
-                             if architecture in abicls.arch)
+            candidates = {abicls for abicls in ABIS
+                             if architecture in abicls.arch}
             if not candidates:
-                raise ValueError("No ABI for architecture %s" % architecture)
+                raise ValueError(f"No ABI for architecture {architecture}")
             if len(candidates) > 1:
                 print("Please specify the ABI:")
                 print("\t" + "\n\t".join(cand.__name__ for cand in candidates))
-                exit(0)
+                sys.exit(0)
             abicls = candidates.pop()
         else:
             for abicls in ABIS:
                 if self.args.abi == abicls.__name__:
                     break
             else:
-                raise ValueError("Unknown ABI name: %s" % self.args.abi)
+                raise ValueError(f"Unknown ABI name: {self.args.abi}")
         self.abicls = abicls
 
         # Select Test set
@@ -230,7 +213,7 @@ class ActionFind(Action):
                 prefix = ""
                 if self.args.verbose > 0:
                     prefix = "\r"
-                print(prefix + "0x%08x : %s" % (msg.address, ",".join(msg.results)))
+                print(prefix + "0x{:08x} : {}".format(msg.address, ",".join(msg.results)))
 
         # Clean output if needed
         if self.args.verbose > 0:
@@ -256,7 +239,7 @@ class ActionFind(Action):
             title = ["Address", "Candidates"]
             ligs = [title]
 
-            ligs += [["0x%08x" % addr, ",".join(result)]
+            ligs += [[f"0x{addr:08x}", ",".join(result)]
                      for addr, result in sorted(results.items(),
                                                 key=lambda x: x[0])
                      if result]

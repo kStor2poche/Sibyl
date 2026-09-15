@@ -19,7 +19,7 @@ def invoke_pin(filename, func_name, header_filename, cont):
 
 def invoke_miasm(filename, func_name, header_filename, cont):
     main_addr = cont.loc_db.get_name_offset("main")
-    return ["sibyl", "learn", "-t", "miasm", "-m", "0x%x" % main_addr,
+    return ["sibyl", "learn", "-t", "miasm", "-m", f"0x{main_addr:x}",
             func_name, filename, header_filename]
 
 def test_learn(args):
@@ -50,7 +50,7 @@ def test_learn(args):
     for filename in c_files:
 
         if filename in unsupported:
-            log_error("Skip %s (unsupported)" % filename)
+            log_error(f"Skip {filename} (unsupported)")
             continue
 
         with open(filename, "rb") as fdesc:
@@ -59,11 +59,10 @@ def test_learn(args):
 
         func_name = filename
         func_addr = cont.loc_db.get_name_offset(func_name)
-        header_filename = "%s.h" % filename
+        header_filename = f"{filename}.h"
 
         for name, cb in to_invoke.items():
-            log_info("Learning %s over %s with %s" % (func_name,
-                                                      filename, name))
+            log_info(f"Learning {func_name} over {filename} with {name}")
             cmdline = cb(filename, func_name, header_filename, cont)
 
             print(" ".join(cmdline))
@@ -89,10 +88,10 @@ def test_learn(args):
             possible_funcs = tl.run(func_addr)
             if tl.possible_funcs and possible_funcs == [filename]:
                 log_success("Generated class recognize the function " \
-                            "'%s'" % func_name)
+                            f"'{func_name}'")
             else:
                 log_error("Generated class failed to recognize the function " \
-                          "'%s'" % func_name)
+                          f"'{func_name}'")
                 fail = True
 
     # Clean

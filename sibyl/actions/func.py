@@ -73,7 +73,7 @@ class ActionFunc(Action):
             fh.heuristics.remove(heur)
 
         if self.args.verbose:
-            print("Heuristics to run: %s" % ", ".join(fh.heuristic_names))
+            print("Heuristics to run: {}".format(", ".join(fh.heuristic_names)))
 
 
         # Launch guess

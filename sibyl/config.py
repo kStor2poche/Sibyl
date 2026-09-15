@@ -95,7 +95,6 @@ class Config:
         cparser = ConfigParser()
         cparser.read(files)
 
-        config = {}
         # Find
         if cparser.has_section("find"):
 
@@ -176,43 +175,43 @@ class Config:
 
         # Find
         out.append("[find]")
-        out.append("jit_engine = %s" % ",".join(self.config["jit_engine"]))
-        out.append("stubs = %s" % ",".join(self.config["stubs"]))
+        out.append("jit_engine = {}".format(",".join(self.config["jit_engine"])))
+        out.append("stubs = {}".format(",".join(self.config["stubs"])))
 
         # Tests
         out.append("")
         out.append("[tests]")
         for name, path in self.config["tests"].items():
-            out.append("%s = %s" % (name, path))
+            out.append(f"{name} = {path}")
 
         # Miasm
         out.append("")
         out.append("[miasm]")
-        out.append("jit_engine = %s" % ",".join(self.config["miasm_engine"]))
+        out.append("jit_engine = {}".format(",".join(self.config["miasm_engine"])))
 
         # Pin
         out.append("")
         out.append("[pin]")
-        out.append("root = %s" % self.config["pin_root"])
-        out.append("tracer = %s" % self.config["pin_tracer"])
+        out.append("root = {}".format(self.config["pin_root"]))
+        out.append("tracer = {}".format(self.config["pin_tracer"]))
 
         # Learn
         out.append("")
         out.append("[learn]")
-        out.append("prune_strategy = %s" % self.config["prune_strategy"])
+        out.append("prune_strategy = {}".format(self.config["prune_strategy"]))
         out.append("prune_keep = %d" % self.config["prune_keep"])
         out.append("prune_keep_max = %d" % self.config["prune_keep_max"])
 
         # IDA
         out.append("")
         out.append("[ida]")
-        out.append("idaq64 = %s" % self.config["idaq64_path"])
+        out.append("idaq64 = {}".format(self.config["idaq64_path"]))
 
         # GHIDRA
         out.append("")
         out.append("[ghidra]")
-        out.append("headless = %s" % self.config["ghidra_headless_path"])
-        out.append("export_function = %s" % self.config["ghidra_export_function"])
+        out.append("headless = {}".format(self.config["ghidra_headless_path"]))
+        out.append("export_function = {}".format(self.config["ghidra_export_function"]))
 
         return out
 
@@ -313,7 +312,7 @@ class Config:
                 "keepall",
                 "keep",
         ]:
-            raise ValueError("Unknown strategy type: %s" % strategy)
+            raise ValueError(f"Unknown strategy type: {strategy}")
         return strategy
 
     @property

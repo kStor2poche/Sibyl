@@ -42,8 +42,8 @@ def print_table(ligs, title=True, separator='|', level=0, align=""):
 
     for i, lig in enumerate(ligs):
         if i == 1 and title:
-            print("%s%s" % (tab, "-" * len(fmt.format(*lig))))
-        print("%s%s" % (tab, fmt.format(*lig)))
+            print("{}{}".format(tab, "-" * len(fmt.format(*lig))))
+        print(f"{tab}{fmt.format(*lig)}")
 
 class HeaderFile:
     """Abstract representation of a Header file"""
@@ -114,7 +114,7 @@ class FuncPrototype:
         self.args_order = args
 
     def __str__(self):
-        return "%s %s(%s)" % (self.func_type,
+        return "{} {}({})".format(self.func_type,
                               self.func_name,
-                              ", ".join("%s %s" % (self.args[name], name)
+                              ", ".join(f"{self.args[name]} {name}"
                                         for name in self.args_order))

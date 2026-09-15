@@ -68,8 +68,8 @@ def handle_found(addr, candidates):
     @addr: address of the function analyzed
     @candidates: list of string of possible matched functions
     """
-    print("Found %s at %s" % (",".join(candidates), hex(addr)))
-    idc.SetFunctionCmt(addr, "[Sibyl] %s?" % ",".join(candidates), False)
+    print("Found {} at {}".format(",".join(candidates), hex(addr)))
+    idc.SetFunctionCmt(addr, "[Sibyl] {}?".format(",".join(candidates)), False)
 
 
 def launch_on_funcs(architecture, abi, funcs, test_set, map_addr=None,
@@ -133,9 +133,7 @@ def launch_on_funcs(architecture, abi, funcs, test_set, map_addr=None,
         maxi = min(i + buf_size, len(funcs))
         estimatedtime = (curtime * nb_func) / maxi
         remaintime = estimatedtime - curtime
-        print("Current: %.02f%% (sub_%s)| Estimated time remaining: %.02fs" % (((100. /nb_func) * maxi),
-                                                                                     addresses[-1],
-                                                                                     remaintime))
+        print(f"Current: {(100. /nb_func) * maxi:.2f}% (sub_{addresses[-1]})| Estimated time remaining: {remaintime:.2f}s")
 
     print("Finished ! Found %d candidates in %.02fs" % (nb_found, time.time() - starttime))
     return res
@@ -152,32 +150,31 @@ customizable parameters
         addr = idc.ScreenEA()
         func = idaapi.get_func(addr)
 
-        tests_choice = "\n".join(map(lambda x: "<%s:{r%s}>" % (x, x), AVAILABLE_TESTS))
+        tests_choice = "\n".join(f"<{x}:{{r{x}}}>" for x in AVAILABLE_TESTS)
         ida_kernwin.Form.__init__(self,
-r"""BUTTON YES* Launch
+rf"""BUTTON YES* Launch
 BUTTON CANCEL NONE
 Sibyl Settings
 
-{FormChangeCb}
+{{FormChangeCb}}
 Apply on:
-<One function:{rOneFunc}>
-<All functions:{rAllFunc}>{cMode}>
+<One function:{{rOneFunc}}>
+<All functions:{{rAllFunc}}>{{cMode}}>
 
-<Targeted function:{cbFunc}>
+<Targeted function:{{cbFunc}}>
 
 Testsets to use:
-%s{cTest}>
+{tests_choice}{{cTest}}>
 
-""" % tests_choice, {
+""", {
     'FormChangeCb': ida_kernwin.Form.FormChangeCb(self.OnFormChange),
     'cMode': ida_kernwin.Form.RadGroupControl(("rOneFunc", "rAllFunc")),
-    'cTest': ida_kernwin.Form.ChkGroupControl(map(lambda x: "r%s" % x,
-                                      AVAILABLE_TESTS),
+    'cTest': ida_kernwin.Form.ChkGroupControl((f"r{x}" for x in AVAILABLE_TESTS),
                                   value=(1 << len(AVAILABLE_TESTS)) - 1),
     'cbFunc': ida_kernwin.Form.DropdownListControl(
         items=self.available_funcs,
         readonly=False,
-        selval="0x%x" % func.startEA),
+        selval=f"0x{func.startEA:x}"),
 }
         )
 
@@ -191,7 +188,7 @@ Testsets to use:
 
     @property
     def available_funcs(self):
-        return map(lambda x:"0x%x" % x, idautils.Functions())
+        return (f"0x{x:x}" for x in idautils.Functions())
 
     @property
     def funcs(self):
@@ -228,7 +225,7 @@ Testsets to use:
             elif idc.GetLongPrm(idc.INF_START_SP) == 0x80:
                 name = "x86_16"
             else:
-                raise ValueError('cannot guess 32/64 bit! (%x)' % max_size)
+                raise ValueError(f'cannot guess 32/64 bit! ({max_size:x})')
         elif processor_name == "ARM":
             # TODO ARM/thumb
             # hack for thumb: set armt = True in globals :/
@@ -277,7 +274,7 @@ Testsets to use:
 
         available_abis = self.IDAABI2SibylABI.get(architecture, None)
         if not available_abis:
-            raise ValueError("No ABI available for architecture %s" % architecture)
+            raise ValueError(f"No ABI available for architecture {architecture}")
 
         if isinstance(available_abis, str):
             return available_abis
@@ -293,7 +290,7 @@ Testsets to use:
             calling_conv = match.group(1)
             abi = available_abis.get(calling_conv, None)
             if abi is None:
-                raise ValueError("No ABI matching %s" % calling_conv)
+                raise ValueError(f"No ABI matching {calling_conv}")
             return abi
         raise ValueError("Unable to guess ABI")
 

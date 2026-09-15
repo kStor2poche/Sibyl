@@ -21,7 +21,7 @@ class MiasmEngine(Engine):
         elif jit_engine in ["llvm", "gcc"]:
             self.jitter.vm.set_alarm()
         else:
-            raise ValueError("Unknown engine: %s" % jit_engine)
+            raise ValueError(f"Unknown engine: {jit_engine}")
 
         super().__init__(machine)
 

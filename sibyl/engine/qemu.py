@@ -64,8 +64,7 @@ class UcWrapJitter:
         ask_arch, ask_attrib = self.lifter_model_call.arch.name, self.lifter_model_call.attrib
         cpucls = UcWrapCPU.available_cpus.get((ask_arch, ask_attrib), None)
         if not cpucls:
-            raise ValueError("Unimplemented architecture (%s, %s)" % (ask_arch,
-                                                                      ask_attrib))
+            raise ValueError(f"Unimplemented architecture ({ask_arch}, {ask_attrib})")
         arch, mode = cpucls.uc_arch, cpucls.uc_mode
         self.ask_arch = ask_arch
         self.ask_attrib = ask_attrib

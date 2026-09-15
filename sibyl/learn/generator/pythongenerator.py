@@ -264,7 +264,6 @@ class PythonGenerator(Generator):
             bases_to_C[expr] = info_C[0]
 
         ## Second, alloc potential needed spaces for I/O
-        todo = {}
         max_per_base_offset = {} # base -> maximum used offset
         max_per_base = {} # base -> maximum used field
         ptr_to_info = {}
@@ -327,17 +326,13 @@ class PythonGenerator(Generator):
         # Reserve memory for each bases
         for expr, Clike in bases_to_C.items():
             ptr = fixed[expr]
-            ptr_size = "%s_size" % ptr
+            ptr_size = f"{ptr}_size"
             last_field = max_per_base[expr]
-            self.printer.add_block("# %s\n" % Clike)
-            self.printer.add_block('%s = self.field_addr("%s", "%s") ' \
-                                   '+ self.sizeof("%s")\n' % (ptr_size,
-                                                              Clike,
-                                                              last_field,
-                                                              last_field))
-            self.printer.add_block('%s = self._alloc_mem(%s, read=True, ' \
-                                   'write=True)\n' % (ptr,
-                                                      ptr_size))
+            self.printer.add_block(f"# {Clike}\n")
+            self.printer.add_block(f'{ptr_size} = self.field_addr("{Clike}", "{last_field}") ' \
+                                   f'+ self.sizeof("{last_field}")\n')
+            self.printer.add_block(f'{ptr} = self._alloc_mem({ptr_size}, read=True, ' \
+                                   'write=True)\n')
 
         self.printer.add_empty_line()
 
@@ -348,15 +343,13 @@ class PythonGenerator(Generator):
             if info["offset"] != 0:
                 # Only consider necessary calls to field_addr
                 # (assume the first field of a struct will always be at offset 0)
-                suffix = ' + self.field_addr("%s", "%s")' % (bases_to_C[base],
+                suffix = ' + self.field_addr("{}", "{}")'.format(bases_to_C[base],
                                                              info["Clike"])
             elif ptr == fixed[base]:
                 # Avoid unnecessary identity affectation
                 continue
-            self.printer.add_block("# %s\n" % info["Clike"])
-            self.printer.add_block('%s = %s%s\n' % (ptr,
-                                                    fixed[base],
-                                                    suffix)
+            self.printer.add_block("# {}\n".format(info["Clike"]))
+            self.printer.add_block(f'{ptr} = {fixed[base]}{suffix}\n'
                                    )
 
         # Set initial values
@@ -428,10 +421,8 @@ class PythonGenerator(Generator):
 
             # We already have the pointer allocated
             addr = fixed[dst.ptr]
-            self.printer.add_block('# %s = %s\n' % (info_C[0], value))
-            self.printer.add_block('self._write_mem(%s, self.pack(%s, self.sizeof("%s")))\n' % (addr,
-                                                                                           value,
-                                                                                           info_C[0]))
+            self.printer.add_block(f'# {info_C[0]} = {value}\n')
+            self.printer.add_block(f'self._write_mem({addr}, self.pack({value}, self.sizeof("{info_C[0]}")))\n')
 
         ## Returned value
         base = None
@@ -463,7 +454,7 @@ class PythonGenerator(Generator):
 
         self.printer.add_empty_line()
         for var in to_save:
-            self.printer.add_block('self.%s = %s\n' % (var, var))
+            self.printer.add_block(f'self.{var} = {var}\n')
         self.printer.sub_lvl()
 
 
@@ -476,7 +467,6 @@ class PythonGenerator(Generator):
         memory_out = snapshot.memory_out
         c_handler = snapshot.c_handler
         typed_C_ids = snapshot.typed_C_ids
-        arguments_symbols = snapshot.arguments_symbols
         output_value = snapshot.output_value
 
         # Sanitize memory accesses
@@ -514,15 +504,13 @@ class PythonGenerator(Generator):
             suffix = ""
             if bases_to_C[base] != Clike:
                 # Only consider necessary calls to field_addr
-                suffix = ' + self.field_addr("%s", "%s", is_ptr=True)' % (bases_to_C[base],
-                                                                          Clike)
-            self.printer.add_block("# Check output value\n# result == %s\n" % Clike)
-            self.printer.add_block('self._get_result() == self.%s%s,\n' % (fixed[base],
-                                                                           suffix))
+                suffix = f' + self.field_addr("{bases_to_C[base]}", "{Clike}", is_ptr=True)'
+            self.printer.add_block(f"# Check output value\n# result == {Clike}\n")
+            self.printer.add_block(f'self._get_result() == self.{fixed[base]}{suffix},\n')
 
         elif self.prototype.func_type.name != "void":
             retvalue = int(output_value)
-            self.printer.add_block("# Check output value\nself._get_result() == %s,\n" % hex(retvalue))
+            self.printer.add_block(f"# Check output value\nself._get_result() == {hex(retvalue)},\n")
 
         for dst in memory_out:
             info_type = list(c_handler.expr_to_types(dst))
@@ -542,7 +530,7 @@ class PythonGenerator(Generator):
                         value = fixed[value]
                     assert value.is_int()
                 else:
-                    value = "self.%s" % fixed[dst]
+                    value = f"self.{fixed[dst]}"
             else:
                 value = memory_out[dst]
 
@@ -552,19 +540,17 @@ class PythonGenerator(Generator):
             if dst in filled_out:
                 # Sparse access, there are offset NOT to consider
                 offsets = [int(offset) for offset in filled_out[dst]]
-                self.printer.add_block('# %s == %s (without considering %s offset(s)\n' % (info_C[0], value, ", ".join(map(hex, offsets))))
+                self.printer.add_block('# {} == {} (without considering {} offset(s)\n'.format(info_C[0], value, ", ".join(map(hex, offsets))))
                 self.printer.add_block('self._ensure_mem_sparse'
-                                       '(self.%s, self.pack(%s, self.sizeof("%s")), [%s]),\n' % (addr,
+                                       '(self.{}, self.pack({}, self.sizeof("{}")), [{}]),\n'.format(addr,
                                                                                             value,
                                                                                             info_C[0],
                                                                                             ", ".join(map(hex, offsets)),
                                        ))
             else:
                 # Full access
-                self.printer.add_block('# %s == %s\n' % (info_C[0], value))
-                self.printer.add_block('self._ensure_mem(self.%s, self.pack(%s, self.sizeof("%s"))),\n' % (addr,
-                                                                                            value,
-                                                                                            info_C[0]))
+                self.printer.add_block(f'# {info_C[0]} == {value}\n')
+                self.printer.add_block(f'self._ensure_mem(self.{addr}, self.pack({value}, self.sizeof("{info_C[0]}"))),\n')
         self.printer.sub_lvl()
         self.printer.add_block("))")
         self.printer.sub_lvl()

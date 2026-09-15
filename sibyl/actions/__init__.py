@@ -29,5 +29,5 @@ ACTIONS = [
 
 def load_action(actiondesc, args):
     "Load the action associated to @actiondesc with arguments @args"
-    mod = import_module(".%s" % actiondesc.module, "sibyl.actions")
+    mod = import_module(f".{actiondesc.module}", "sibyl.actions")
     return getattr(mod, actiondesc.classname)(args)

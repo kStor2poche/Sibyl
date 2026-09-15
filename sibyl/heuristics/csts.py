@@ -23,7 +23,7 @@ func_epilogs = {
         br"[^\x48][\x83,\x81]\xc4([\x00-\xff]{1}|[\x00-\xff]{4})\xc3", #  add esp, <siz>; retq
     ],
     'arml': [
-        br"[\x00-\xff]{2}\xbd\xe8\x1e\xff\x2f\xe1"   # pop {xxx}; bx lr
-        br"\x04\xe0\x9d\xe4\x1e\xff\x2f\xe1"         # pop {xxx}; bx lr
+        br"[\x00-\xff]{2}\xbd\xe8\x1e\xff\x2f\xe1",   # pop {xxx}; bx lr
+        br"\x04\xe0\x9d\xe4\x1e\xff\x2f\xe1",         # pop {xxx}; bx lr
     ],
 }

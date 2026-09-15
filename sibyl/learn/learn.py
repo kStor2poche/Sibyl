@@ -110,7 +110,7 @@ class TestCreator:
                 if len(trace) >= config.prune_keep:
                     break
         else:
-            raise ValueError("Unsupported strategy type: %s" % config.prune_strategy)
+            raise ValueError(f"Unsupported strategy type: {config.prune_strategy}")
 
         self.trace = trace
         if ignored is None:
@@ -169,7 +169,7 @@ class TestCreator:
 
         self.prototype = self.headerfile.functions[self.functionname]
         self.types = ctype_manager
-        self.logger.info("Found prototype: %s" % self.prototype)
+        self.logger.info(f"Found prototype: {self.prototype}")
 
     def create_test(self):
         """

@@ -49,10 +49,10 @@ def handle_found(addr, candidates):
     @addr: address of the function analyzed
     @candidates: list of string of possible matched functions
     """
-    print("Found %s at %s" % (",".join(candidates), hex(addr)))
+    print("Found {} at {}".format(",".join(candidates), hex(addr)))
     listing = currentProgram.getListing()
     codeUnit = listing.getCodeUnitAt(toAddr(addr))
-    codeUnit.setComment(codeUnit.PLATE_COMMENT, "Sibyl - %s" % ",".join(candidates))
+    codeUnit.setComment(codeUnit.PLATE_COMMENT, "Sibyl - {}".format(",".join(candidates)))
 
 
 def launch_on_funcs(architecture, abi, funcs, test_set, map_addr=None,
@@ -116,9 +116,7 @@ def launch_on_funcs(architecture, abi, funcs, test_set, map_addr=None,
         maxi = min(i + buf_size, len(funcs))
         estimatedtime = (curtime * nb_func) / maxi
         remaintime = estimatedtime - curtime
-        monitor.setMessage("Current: %.02f%% (FUN_%s)| Estimated time remaining: %.02fs" % (((100. /nb_func) * maxi),
-                                                                                            addresses[-1],
-                                                                                            remaintime))
+        monitor.setMessage(f"Current: {(100. /nb_func) * maxi:.2f}% (FUN_{addresses[-1]})| Estimated time remaining: {remaintime:.2f}s")
         if monitor.isCancelled():
             print("Early break asked by the user")
             break
@@ -139,19 +137,19 @@ if __name__ == "__main__":
     processor_name, abi = str(currentProgram.getLanguage()).rsplit("/", 1)
     m_arch = GHIDRAArch2MiasmArch.get(processor_name, None)
     if processor_name is None:
-        popup("Unsupported architecture: %s" % processor_name)
+        popup(f"Unsupported architecture: {processor_name}")
         os.exit(0)
 
     s_abi = GHIDRAABI2SibylABI.get((m_arch, abi), None)
     if s_abi is None:
-        popup("Unsupported ABI: (%s, %s)" % (m_arch, abi))
+        popup(f"Unsupported ABI: ({m_arch}, {abi})")
         os.exit(0)
 
     monitor.setMessage("Get functions address...")
     cur, whole = "Current function", "Whole program"
     choice = askChoice("Target", "Target function(s)", [cur, whole], cur)
     if choice == cur:
-        addrs = ["0x%x" % getFunctionContaining(currentAddress).entryPoint.getOffset()]
+        addrs = [f"0x{getFunctionContaining(currentAddress).entryPoint.getOffset():x}"]
     else:
         addrs = []
         for func in currentProgram.getListing().getFunctions(True):
@@ -166,7 +164,7 @@ if __name__ == "__main__":
 
             addr = func.getEntryPoint()
             if addr is not None:
-                addrs.append("0x%x" % addr.getOffset())
+                addrs.append(f"0x{addr.getOffset():x}")
 
     monitor.setMessage("Get available tests...")
     AVAILABLE_TESTS = available_tests()

@@ -67,7 +67,7 @@ class Replay:
         for addr, mem in self.snapshot.out_memory.items():
             self.logger.debug("Check @%s, %s bytes: %r", hex(addr), hex(mem.size), mem.data[:0x10])
             if mem.data != jitter.vm.get_mem(addr, mem.size):
-                self.replayexception += ["output memory wrong at 0x%x: %s expected, %s found" % (addr, repr(mem.data), repr(jitter.vm.get_mem(addr, mem.size)))]
+                self.replayexception += [f"output memory wrong at 0x{addr:x}: {mem.data!r} expected, {jitter.vm.get_mem(addr, mem.size)!r} found"]
                 func_found = False
 
         return func_found

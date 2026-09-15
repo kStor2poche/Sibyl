@@ -16,7 +16,7 @@ class Trace(list):
 
     def add_symbol(self, image_name, symbol_name, symbol_addr):
         """Add the symbol:addr from the image image_name"""
-        self.symbols.setdefault(image_name, dict())[symbol_name] = symbol_addr
+        self.symbols.setdefault(image_name, {})[symbol_name] = symbol_addr
 
     def symbol_to_address(self, symbol_name, image_name=None):
         """Get the corresponding in-memory address from a symbol, or None if not found
@@ -184,8 +184,7 @@ class Snapshot:
         info = self._pending_call.pop()
         info["end"] = self._instr_count
         info["ret"] = value
-        current_interval = self.function_calls.setdefault(info["dest"],
-                                                          list()).append(info)
+        self.function_calls.setdefault(info["dest"], []).append(info)
 
     def clean(self):
         """Clean the snapshot for further uses"""

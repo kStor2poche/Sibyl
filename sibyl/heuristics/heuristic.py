@@ -39,7 +39,7 @@ class Heuristic:
         for func in self.heuristics:
             if func.__name__ == name:
                 return func
-        raise KeyError("Unable to find %s" % name)
+        raise KeyError(f"Unable to find {name}")
 
     def guess(self):
         """Return the best candidate"""

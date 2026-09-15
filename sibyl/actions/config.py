@@ -53,15 +53,15 @@ class ActionConfig(Action):
             print("No configuration file found. Supported paths:")
             print("\t" + "\n\t".join(config_paths))
         else:
-            print("Configuration loaded from %s" % ", ".join(files))
+            print("Configuration loaded from {}".format(", ".join(files)))
 
         # Jitter engine
         engines = config.config["jit_engine"]
         if "miasm" in engines:
             idx = engines.index("miasm")
             engines[idx:idx + 1] = config.config["miasm_engine"]
-        print("Jitter engine (preference order): %s" % ", ".join(engines))
-        print("Elected jitter engine: %s" % config.jit_engine)
+        print("Jitter engine (preference order): {}".format(", ".join(engines)))
+        print(f"Elected jitter engine: {config.jit_engine}")
 
         # Stubbing
         stubs = config.stubs
@@ -73,12 +73,12 @@ class ActionConfig(Action):
         # PIN
         if (config.pin_root and
             os.path.exists(os.path.join(config.pin_root, "pin"))):
-            print("PIN root path found at: %s" % config.pin_root)
+            print(f"PIN root path found at: {config.pin_root}")
         else:
             print("PIN root path not found")
         if (config.pin_tracer and
             os.path.exists(config.pin_tracer)):
-            print("PIN tracer found at: %s" % config.pin_tracer)
+            print(f"PIN tracer found at: {config.pin_tracer}")
         else:
             print("PIN tracer not found")
 
@@ -90,14 +90,14 @@ class ActionConfig(Action):
         # IDA
         idaq64_path = config.idaq64_path
         if idaq64_path:
-            print("IDA has been found at: %s" % idaq64_path)
+            print(f"IDA has been found at: {idaq64_path}")
         else:
             print("IDA has been not found")
 
         # GHIDRA Headless
         ghidra_headless_path = config.ghidra_headless_path
         if ghidra_headless_path:
-            print("GHIDRA analyzeHeadless has been found at: %s" % ghidra_headless_path)
+            print(f"GHIDRA analyzeHeadless has been found at: {ghidra_headless_path}")
         else:
             print("GHIDRA analyzeHeadless has been not found")
 

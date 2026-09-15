@@ -138,17 +138,17 @@ def ida_funcs(func_heur):
     # Prepare temporary files: script and output
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=True) as tmp_script, tempfile.NamedTemporaryFile(suffix=".addr", delete=True) as tmp_out:
 
-        tmp_script.write("""idaapi.autoWait()
-    open("%s", "w").write("\\n".join("0x%%x" %% x for x in Functions()))
+        tmp_script.write(f"""idaapi.autoWait()
+    open("{tmp_out.name}", "w").write("\\n".join("0x%x" % x for x in Functions()))
     Exit(0)
-    """ % tmp_out.name)
+    """)
         tmp_script.flush()
 
     # Launch IDA
     env = os.environ.copy()
     env["TVHEADLESS"] = "true"
     run = subprocess.Popen([idaq64_path, "-A",
-                            "-OIDAPython:%s" % tmp_script.name,
+                            f"-OIDAPython:{tmp_script.name}",
                             func_heur.filename],
                             env=env,
                            stdout=subprocess.PIPE,

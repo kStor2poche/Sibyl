@@ -76,7 +76,7 @@ class ExtractRef:
             self.logger.debug("Check @%s, %s bytes: %r", hex(addr), hex(mem.size), mem.data[:0x10])
             jitter_mem = jitter.vm.get_mem(addr, mem.size)
             if mem.data != jitter_mem:
-                self.replayexception += ["output memory wrong at 0x%x: %s expected, %s found" % (addr, repr(mem.data), repr(jitter_mem))]
+                self.replayexception += [f"output memory wrong at 0x{addr:x}: {mem.data!r} expected, {jitter_mem!r} found"]
                 func_found = False
 
         return func_found
@@ -195,14 +195,10 @@ class ExtractRef:
             if self.logger.isEnabledFor(logging.DEBUG):
                 print("In:")
                 for x in self.memories_read:
-                    print("\t%s (%s)" % (x,
-                                         self.c_handler.expr_to_c(x),
-                    ))
+                    print(f"\t{x} ({self.c_handler.expr_to_c(x)})")
                 print("Out:")
                 for x in self.memories_write:
-                    print("\t%s (%s)" % (x,
-                                         self.c_handler.expr_to_c(x),
-                    ))
+                    print(f"\t{x} ({self.c_handler.expr_to_c(x)})")
             return True
 
         # Update state
@@ -219,7 +215,7 @@ class ExtractRef:
     def memory_to_expr(addr):
         """Translate an address to its corresponding symbolic ID (8bits)
         @addr: int"""
-        return miasm_expr.ExprId("MEM_0x%x" % int(addr), 8)
+        return miasm_expr.ExprId(f"MEM_0x{int(addr):x}", 8)
 
     def symbolize_memory(self, memory_range):
         """Register a range of memory addresses to symbolize
@@ -295,7 +291,7 @@ class ExtractRef:
             if objc_is_dereferenceable(arg_type):
                 # Convert the argument to symbol to track access based on it
                 self.symb.apply_change(cur_arg_abi, cur_arg)
-            typed_exprs[cur_arg] = set([arg_type])
+            typed_exprs[cur_arg] = {arg_type}
             typed_C_ids[cur_arg.name] = arg_type
             self.args_symbols.append(cur_arg)
 

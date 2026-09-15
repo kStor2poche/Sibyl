@@ -215,7 +215,7 @@ class TestSetAnd(TestSet):
         self._ts2 = ts2
 
     def __repr__(self):
-        return "%r TS_AND %r" % (self._ts1, self._ts2)
+        return f"{self._ts1!r} TS_AND {self._ts2!r}"
 
     def execute(self, callback):
         if not self._ts1.execute(callback):
@@ -240,7 +240,7 @@ class TestSetOr(TestSet):
         self._ts2 = ts2
 
     def __repr__(self):
-        return "%r TS_OR %r" % (self._ts1, self._ts2)
+        return f"{self._ts1!r} TS_OR {self._ts2!r}"
 
     def execute(self, callback):
         if self._ts1.execute(callback):
@@ -265,7 +265,7 @@ class TestSetTest(TestSet):
         self._check = check
 
     def __repr__(self):
-        return "<TST %r,%r>" % (self._init, self._check)
+        return f"<TST {self._init!r},{self._check!r}>"
 
     def execute(self, callback):
         return callback(self._init, self._check)
@@ -304,7 +304,7 @@ class TestHeader(Test):
         proto = hdr.functions[self.func]
         self.c_handler = CHandler(
             hdr.ctype_manager,
-            {'arg%d_%s' % (i, name): set([proto.args[name]])
+            {'arg%d_%s' % (i, name): {proto.args[name]}
              for i, name in enumerate(proto.args_order)}
         )
         self.expr_types_from_C = {'arg%d_%s' % (i, name): proto.args[name]
@@ -338,7 +338,7 @@ class TestHeader(Test):
             if is_ptr:
                 access_expr = self.trad(Clike)
             else:
-                access_expr = self.trad("&(%s)" % Clike)
+                access_expr = self.trad(f"&({Clike})")
             offset = int(expr_simp(access_expr - base_expr))
             ret = offset
             self.cache_field_addr[key] = ret

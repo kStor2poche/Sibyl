@@ -28,7 +28,7 @@ class Action:
     def __init__(self, command_line):
         # Parse command line
         parser = argparse.ArgumentParser(
-            prog="%s %s" % (sys.argv[0], self._name_))
+            prog=f"{sys.argv[0]} {self._name_}")
         for args, kwargs in self._args_:
             parser.add_argument(*args, **kwargs)
         self.args = parser.parse_args(command_line)

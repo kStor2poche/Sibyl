@@ -65,7 +65,7 @@ class ActionLearn(Action):
             cont = Container.from_stream(open(self.args.program, 'rb'), loc_db)
             address = cont.loc_db.get_name_offset(self.args.functionname)
             if address is None:
-                raise ValueError("Symbol %s does not exists in %s" % (self.args.functionname, self.args.program))
+                raise ValueError(f"Symbol {self.args.functionname} does not exists in {self.args.program}")
         else:
             address = int(self.args.address, 0)
 

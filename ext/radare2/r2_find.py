@@ -19,6 +19,7 @@
 import json
 import os
 import subprocess
+import sys
 import time
 
 import r2pipe
@@ -62,7 +63,7 @@ def handle_found(addr, candidates):
     @addr: address of the function analyzed
     @candidates: list of string of possible matched functions
     """
-    print("[+] Found %s at %s" % (",".join(candidates), hex(addr)))
+    print("[+] Found {} at {}".format(",".join(candidates), hex(addr)))
     #rename the functions in r2
     r2.cmd('afn ' + ",".join(candidates) +'_sibyl ' +hex(addr))
     # setup flags in r2
@@ -135,9 +136,7 @@ def launch_on_funcs(architecture, abi, funcs, test_set, map_addr=None,
         maxi = min(i + buf_size, len(funcs))
         estimatedtime = (curtime * nb_func) / maxi
         remaintime = estimatedtime - curtime
-        print("[*] Current: %.02f%% (sub_%s)| Estimated time remaining: %.02fs" % (((100. /nb_func) * maxi),
-                                                                                     addresses[-1],
-                                                                                     remaintime))
+        print(f"[*] Current: {(100. /nb_func) * maxi:.2f}% (sub_{addresses[-1]})| Estimated time remaining: {remaintime:.2f}s")
 
     print("[*] Finished ! Found %d candidates in %.02fs" % (nb_found, time.time() - starttime))
     return res
@@ -146,14 +145,12 @@ def architecture(bin_info):
   processor_name = bin_info['bin']['arch']
   endian = bin_info['bin']['endian']
   bits = bin_info['bin']['bits']
-  print("[*] Architecture: %s / Endianess: %s / Bits: %s" %(processor_name, endian, bits))
+  print(f"[*] Architecture: {processor_name} / Endianess: {endian} / Bits: {bits}")
 
   if processor_name == "arm":
     # TODO ARM/thumb
     # hack for thumb: set armt = True in globals :/
-    # set bigendiant = True is bigendian
     is_armt = globals().get('armt', False)
-    is_bigendian = globals().get('bigendian', False)
 
     abi = "ABI_ARM"
     if is_armt:
@@ -217,7 +214,7 @@ def main():
   #settings_abi = "ABI_ARM"      # [-b {ABIStdCall_x86_32,ABIFastCall_x86_32,ABI_AMD64_SYSTEMV,ABI_AMD64_MS,ABI_ARM,ABI_MIPS_O32}]
   settings_tests = ['string','stdlib','ctype']       # [-t {stdlib,string,ctype}]
 
-  sibyl_res = launch_on_funcs(settings_architecture,
+  launch_on_funcs(settings_architecture,
                                 settings_abi,
                                 current_functionsj,
                                 settings_tests)
@@ -229,7 +226,7 @@ if __name__ == '__main__':
 
   if int(r2.cmd('aflc')) == 0:
     print('\n[-] no functions found for analyzing ... try to analyze the binary first')
-    exit(0)
+    sys.exit(0)
 
   # we create an IDA batch file for auto renaming the functions in IDA pro
   f = open('ida_batch_sibyl.txt', 'w', 0)

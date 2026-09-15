@@ -5,11 +5,11 @@ colors = {"red": "\033[91;1m",
           "blue": "\033[94;1m"}
 
 def log_error(content):
-    msg = "%(red)s[-] " % colors + content + "%(end)s" % colors
+    msg = "{red}[-] ".format(**colors) + content + "{end}".format(**colors)
     print(msg)
 
 def log_success(content):
-    msg = "%(green)s[+] " % colors + content + "%(end)s" % colors
+    msg = "{green}[+] ".format(**colors) + content + "{end}".format(**colors)
     print(msg)
 
 def log_info(content):

@@ -2,6 +2,7 @@
 import os
 import re
 import subprocess
+import sys
 
 from miasm.loader.elf import SHN_UNDEF, STT_GNU_IFUNC
 from miasm.loader.elf_init import ELF
@@ -39,14 +40,12 @@ def get_funcs_exe_source(c_file: str, filename: str) -> tuple[list[tuple[int, st
             # TODO: resolve ifunc/get corresponding GOT pointer to test (bcs they should be resolved by the loader)
             continue
         offset = symb.value
-        if name.startswith(b"__"): # allows us to test the actual glibc functions
-            name = name[2:]
+        name.removeprefix(b"__") # allows us to test the actual glibc functions
         symbols.setdefault(name, set()).add(offset)
         if name in funcs:
-            if name.startswith(custom_tag):
-                ## Custom tags can be used to write equivalent functions like
-                ## 'my_strlen' for a custom strlen
-                name = name[len(custom_tag):]
+            ## Custom tags can be used to write equivalent functions like
+            ## 'my_strlen' for a custom strlen
+            name = name.removeprefix(custom_tag)
             to_check.append((offset, name))
     return to_check, symbols
 
@@ -91,7 +90,7 @@ def test_find(args):
     log_info( "Remove old files" )
     os.system("make clean")
     log_info( "Compile C files" )
-    status = os.system("make")
+    os.system("make")
 
     # Find test names
     c_files: list[str] = []
@@ -107,7 +106,7 @@ def test_find(args):
         # to_check: (addr, expected found)
         # extra: possible extra match
         to_check, extra = get_funcs(c_file, filename)
-        print("\n".join("0x%08x: %s" % (addr, funcname)
+        print("\n".join(f"0x{addr:08x}: {funcname}"
                         for (addr, funcname) in to_check))
 
         if filename == "test_stub":
@@ -141,7 +140,7 @@ def test_find(args):
         if sibyl.returncode:
             log_error(f"Process exited with a {sibyl.returncode} code")
             print(stderr.decode())
-            exit(sibyl.returncode)
+            sys.exit(sibyl.returncode)
 
         log_info( "Evaluate results" )
         i = 0
@@ -151,19 +150,19 @@ def test_find(args):
                 offset, name = element
                 if offset in extra.get(name, []):
                     # Present in symtab but not in C source file
-                    print("[+] Additionnal found: %s (@0x%08x)" % (name, offset))
+                    print(f"[+] Additionnal found: {name} (@0x{offset:08x})")
                 else:
                     alt_names = [aname
                                  for aname, offsets in extra.items()
                                  if offset in offsets]
-                    log_error("Bad found: %s (@0x%08x -> '%s')" % (name,
+                    log_error("Bad found: {} (@0x{:08x} -> '{}')".format(name,
                                                                    offset,
                                                                    ",".join(alt_names)))
             else:
                 i += 1
         for element in to_check:
             if element not in found:
-                log_error("Unable to find: %s (@0x%08x)" % (element[1], element[0]))
+                log_error(f"Unable to find: {element[1]} (@0x{element[0]:08x})")
 
         log_success("Found %d/%d correct elements" % (i, len(to_check)))
 
