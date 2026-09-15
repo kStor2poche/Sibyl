@@ -102,7 +102,7 @@ class Snapshot(object):
         self._ptr_size = self._lifter_model_call.sizeof_pointer() // 8
         self.sp = self._lifter_model_call.sp.name
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{type(self)} with {self._instr_count} executed instructions up to 0x{self._current_addr:x} (prev. addr: 0x{self._previous_addr:x})"
 
     def add_input_register(self, reg_name, reg_value):

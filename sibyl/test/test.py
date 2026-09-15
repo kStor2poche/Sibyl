@@ -176,7 +176,7 @@ class Test(object):
 
     @staticmethod
     def unpack(element: bytes):
-        return int.from_bytes(element, byteorder="little") # XXX: little endian hard coded ????!!!!?????
+        return int.from_bytes(element, byteorder="little") # TODO: little endian hard coded ????!!!!?????
 
 
 class TestSet(object):
@@ -275,9 +275,6 @@ class TestSetGenerator(TestSet):
 
     def __init__(self, generator: Generator):
         self._generator = generator
-
-    def __repr__(self) -> str:
-        return "11 ans ont passé et on n'a toujours pas la technologie..."
 
     def execute(self, callback):
         for (init, check) in self._generator:

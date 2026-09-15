@@ -107,7 +107,6 @@ class TestAtoi(Test):
         to_bytes_args = { "length": ptr_sz, "byteorder": "little" if self.jitter.vm.is_little_endian() else "big" }
         _nl_globale_locale_ptr = self._alloc_bytes(_nl_globale_locale_packed, True)
         self.jitter.vm.set_mem(self.gs_map_addr - 0x24, _nl_globale_locale_ptr.to_bytes(**to_bytes_args))
-        # self.jitter.add_breakpoint(0x0804E6C3, lambda j: breakpoint())
 
 
     # Test

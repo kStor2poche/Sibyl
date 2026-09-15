@@ -108,8 +108,8 @@ def test_find(args):
         # to_check: (addr, expected found)
         # extra: possible extra match
         to_check, extra = get_funcs(c_file, filename)
-        print("\n".join("0x%08x: %s" % (addr, funcname))
-                        for (addr, funcname) in to_check)
+        print("\n".join("0x%08x: %s" % (addr, funcname)
+                        for (addr, funcname) in to_check))
 
         if filename == "test_stub":
             map_addr = 0x10_00_00

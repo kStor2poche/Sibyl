@@ -21,7 +21,7 @@ class Generator(object):
         self.printer = Printer()
         self.headerfile = testcreator.headerfile
         self.lifter_model_call = Machine(testcreator.machine).lifter_model_call(testcreator.loc_db)
-        self.ptr_size = self.lifter_model_call.sizeof_pointer()/8
+        self.ptr_size = self.lifter_model_call.sizeof_pointer()//8
         self.logger = testcreator.logger
 
     def generate_test(self):

@@ -57,7 +57,7 @@ class ActionFunc(Action):
         cont = Container.from_stream(open(self.args.filename, "rb"), loc_db)
         machine = Machine(cont.arch)
         assert(machine.lifter_model_call is not None)
-        addr_size = machine.lifter_model_call(loc_db).pc.size / 4
+        addr_size = machine.lifter_model_call(loc_db).pc.size // 4
         fh = FuncHeuristic(cont, machine, self.args.filename)
 
         # Default: force only IDA or GHIDRA if available

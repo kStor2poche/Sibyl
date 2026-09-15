@@ -148,10 +148,6 @@ class UcWrapVM(object):
         return bytes(self.mu.mem_read(addr, size))
 
     def set_mem(self, addr, content: bytes):
-        if not isinstance(content, bytes):
-            print("puni!")
-            import traceback
-            traceback.print_stack()
         self.mu.mem_write(addr, content)
 
     def get_all_memory(self):
