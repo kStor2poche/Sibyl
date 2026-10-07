@@ -22,6 +22,7 @@ import time
 from miasm.analysis.binary import Container, ContainerELF, ContainerPE
 from miasm.analysis.machine import Machine
 from miasm.core.locationdb import LocationDB
+from miasm.jitter.loader.elf import RelocOptions
 
 from sibyl.commons import END_ADDR, init_logger
 from sibyl.config import config
@@ -44,7 +45,7 @@ class TestLauncher:
 
         # Init and snapshot VM
         self.map_addr = map_addr
-        self.load_vm(data, map_addr)
+        self.load_vm(data, map_addr, engine_name)
         self.init_stub()
         self.snapshot = self.engine.take_snapshot()
 
@@ -89,9 +90,11 @@ class TestLauncher:
             tests.append(testcls(self.jitter, self.abi))
         self.tests = tests
 
-    def load_vm(self, data: bytes, map_addr):
+    def load_vm(self, data: bytes, map_addr, ifunc_jitter_engine=None):
+        reloc_options = RelocOptions(run_ifuncs=True, ifunc_jitter_engine=ifunc_jitter_engine)
         self.ctr = Container.from_string(data, vm=self.jitter.vm, apply_reloc=True,
-                                         addr=map_addr, loc_db=self.loc_db)
+                                         reloc_options=reloc_options, addr=map_addr,
+                                         loc_db=self.loc_db)
         self.jitter.cpu.init_regs()
         self.jitter.init_stack()
 

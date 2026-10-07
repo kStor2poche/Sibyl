@@ -8,8 +8,8 @@ Sibyl
 
 A _Miasm_ based function divination.
 
-> "Le monde est conduit par les prophètes, par ceux qui savent voir les effets dans les causes. La sibylle n'a jamais menti; elle ne s'est jamais trompée. La sibylle est la voix du Latium, le guide de la race latine, la révélatrice de ses destinées."
-_(Renan, Drames philos., Prêtre Némi, 1885, II 7 p. 562)_
+> "Le monde est conduit par les prophètes, par ceux qui savent voir les effets dans les causes. La sibylle n'a jamais menti; elle ne s'est jamais trompée. La sibylle est la voix du Binaire, le guide des rétro-ingénieurs, la révélatrice de ses destinées."
+_(tiré de Renan, Drames philos., Prêtre Némi, 1885, II 7 p. 562)_
 
 Idea
 ----
@@ -19,7 +19,7 @@ But it is a time consuming task. Moreover, this task is made more difficult due 
 
 Tools have been developed to automate this task. Some are based on CFG (Control Flow Graph) signature (_Bindiff_), others on magic constants (_FindCrypt_) or enhanced pattern matching (_FLIRT_).
 
-_Sibyl_ is one of these tools, dynamic analysis oriented and **based on _Miasm2_** (https://github.com/cea-sec/miasm).
+_Sibyl_ is one of these tools, dynamic analysis oriented and **based on _Miasm_** (https://github.com/cea-sec/miasm).
 The idea is to identify functions from their side effects. That way, identification is independent of the used implementation.
 
 Identifications are done thanks to these steps:
@@ -170,7 +170,7 @@ Installation
 
 ### Standard
 
-_Sibyl_ requires at least _Miasm2_ version `v0.1.1` and the corresponding version of _Elfesteem_.
+_Sibyl_ requires at least _Miasm_.
 For the `qemu` engine, the `unicorn` python package must be installed (refer to the documentation of Unicorn for more detail).
 
 _Sibyl_ comes as a Python module, and the installation follow the standard procedure:
@@ -256,7 +256,7 @@ To avoid these behaviors, there is a timeout on each sub-test. The _-i/--timeout
 
 ### How to run the tool on a custom architecture?
 
-Once the architecture and corresponding semantic is implemented in Miasm2, one just needs to implement the wanted ABI in _sibyl/abi/_.
+Once the architecture and corresponding semantic is implemented in Miasm, one just needs to implement the wanted ABI in _sibyl/abi/_.
 If writing the jitter engine part is an issue, one can directly use the _python_ jitter option with _-j/--jitter_ argument.
 If the semantic is not complete enough, one can add the corresponding bridge with _qemu_ in `sibyl/engine/qemu.py`, if available.
 

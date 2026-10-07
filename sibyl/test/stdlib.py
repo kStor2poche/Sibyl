@@ -85,8 +85,9 @@ class TestAtoi(Test):
     def init_libc_locale_struct(self):
         # pack data into memory according to our machine
         ptr_sz = self.abi.lifter_model_call.sizeof_pointer() // 8
-        _nl_C_LC_CTYPE_tolower_packed = struct.pack(('<' if self.jitter.vm.is_little_endian() else '>') + "I" * len(_nl_C_LC_CTYPE_tolower), *_nl_C_LC_CTYPE_tolower) # TODO: take ptr_sz into account
-        _nl_C_LC_CTYPE_toupper_packed = struct.pack(('<' if self.jitter.vm.is_little_endian() else '>') + "I" * len(_nl_C_LC_CTYPE_toupper), *_nl_C_LC_CTYPE_toupper) # TODO: idem
+        endianness = "little" if self.jitter.vm.is_little_endian() else "big"
+        _nl_C_LC_CTYPE_tolower_packed = b''.join([i.to_bytes(signed=False, length=ptr_sz, byteorder=endianness) for i in _nl_C_LC_CTYPE_tolower])
+        _nl_C_LC_CTYPE_toupper_packed = b''.join([i.to_bytes(signed=False, length=ptr_sz, byteorder=endianness) for i in _nl_C_LC_CTYPE_toupper])
         _nl_C_LC_CTYPE_class_packed = b''.join([bytes(reversed(_nl_C_LC_CTYPE_class[i:i+ptr_sz])) for i in range(0, len(_nl_C_LC_CTYPE_class), ptr_sz)]) if self.jitter.vm.is_little_endian() else _nl_C_LC_CTYPE_class
 
         # initialize TLS around gs segment
